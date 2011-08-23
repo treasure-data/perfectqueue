@@ -48,11 +48,11 @@ class RDBBackend < Backend
   public
   def list(&block)
     @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` ORDER BY created_at ASC;") {|row|
-      block.call(row[:id], row[:created_at], row[:data], row[:timeout])
+      yield row[:id], row[:created_at], row[:data], row[:timeout]
     }
   end
 
-  MAX_SELECT_ROW = 128
+  MAX_SELECT_ROW = 32
 
   def acquire(timeout, now=Time.now.to_i)
     connect {

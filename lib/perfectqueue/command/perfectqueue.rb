@@ -96,6 +96,18 @@ op.on('--table NAME', 'backend: name of the table (default: perfectqueue)') {|s|
   conf[:backend_table] = s
 }
 
+op.on('--simpledb DOMAIN', 'Use Amazon SimpleDB for the backend database (e.g.: --simpledb mydomain -k KEY_ID -s SEC_KEY)') {|s|
+  conf[:backend_simpledb] = s
+}
+
+op.on('-k', '--key-id ID', 'AWS Access Key ID') {|s|
+  conf[:backend_key_id] = s
+}
+
+op.on('-s', '--secret-key KEY', 'AWS Secret Access Key') {|s|
+  conf[:backend_secret_key] = s
+}
+
 op.on('-o', '--log PATH', "log file path") {|s|
   conf[:log] = s
 }
@@ -174,8 +186,15 @@ begin
     backend_proc = Proc.new {
       PerfectQueue::RDBBackend.new(conf[:backend_database], conf[:backend_table])
     }
+  elsif conf[:backend_simpledb]
+    conf[:backend_key_id] ||= ENV['AWS_ACCESS_KEY_ID']
+    conf[:backend_secret_key] ||= ENV['AWS_SECRET_ACCESS_KEY']
+    backend_proc = Proc.new {
+      PerfectQueue::SimpleDBBackend.new(conf[:backend_key_id], conf[:backend_secret_key], conf[:backend_simpledb])
+    }
+
   else
-    raise "--database URI is required"
+    raise "--database or --simpledb is required"
   end
 
 rescue
@@ -202,6 +221,7 @@ end
 require 'logger'
 require 'perfectqueue'
 require 'perfectqueue/backend/rdb'
+require 'perfectqueue/backend/simpledb'
 
 backend = backend_proc.call
 
