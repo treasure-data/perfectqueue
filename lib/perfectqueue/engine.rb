@@ -69,16 +69,16 @@ class Engine
     @finished = true
   end
 
-  def stop(error=nil)
+  def stop(err=nil)
     @finished = true
     @error = error
     @workers.each {|w|
       w.stop
     }
 
-    if error
-      log.error error.to_s
-      error.backtrace.each {|x|
+    if err
+      log.error err.to_s
+      err.backtrace.each {|x|
         log.error "  #{x}"
       }
     end

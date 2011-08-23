@@ -34,6 +34,7 @@ class MonitorThread
   end
 
   def start
+    @log.debug "running worker."
     @thread = Thread.new(&method(:run))
   end
 

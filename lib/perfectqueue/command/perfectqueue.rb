@@ -96,6 +96,14 @@ op.on('--table NAME', 'backend: name of the table (default: perfectqueue)') {|s|
   conf[:backend_table] = s
 }
 
+op.on('-o', '--log PATH', "log file path") {|s|
+  conf[:log] = s
+}
+
+op.on('-v', '--verbose', "verbose mode", TrueClass) {|b|
+  conf[:verbose] = true
+}
+
 
 (class<<self;self;end).module_eval do
   define_method(:usage) do |msg|
@@ -250,7 +258,19 @@ when :exec, :run
 
   conf[:run_class] = run_class
 
-  log = Logger.new(STDOUT)
+  if log_file = conf[:log]
+    log_out = File.open(conf[:log], "a")
+  else
+    log_out = STDOUT
+  end
+
+  log = Logger.new(log_out)
+  if conf[:verbose]
+    log.level = Logger::DEBUG
+  else
+    log.level = Logger::INFO
+  end
+
   engine = PerfectQueue::Engine.new(backend, log, conf)
 
   trap :INT do
@@ -263,9 +283,23 @@ when :exec, :run
     engine.stop
   end
 
+  trap :HUP do
+    if log_file
+      log_out.reopen(log_file, "a")
+    end
+  end
+
   log.info "PerfectQueue-#{PerfectQueue::VERSION}"
 
-  engine.run
-  engine.shutdown
+  begin
+    engine.run
+    engine.shutdown
+  rescue
+    log.error $!.to_s
+    $!.backtrace.each {|x|
+      log.error "  #{x}"
+    }
+    exit 1
+  end
 end
 
