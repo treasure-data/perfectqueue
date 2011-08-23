@@ -31,16 +31,17 @@ PerfectQueue uses following database schema:
           --configure PATH.yaml        Write configuration file
           --exec COMMAND               Execute command
           --run SCRIPT.rb              Run method named 'run' defined in the script
-      -t, --timeout SEC                Time for another worker to take over a task when this worker goes down. (default: 30)
-      -b  --heartbeat-interval SEC     Threshold time to extend the timeout. (heartbeat interval) (default: timeout * 3/4)
+      -t, --timeout SEC                Time for another worker to take over a task when this worker goes down (default: 30)
+      -b  --heartbeat-interval SEC     Threshold time to extend the timeout (heartbeat interval) (default: timeout * 3/4)
       -x, --kill-timeout SEC           Threshold time to kill a task process (default: timeout * 10)
       -X, --kill-interval SEC          Threshold time to retry killing a task process (default: 60)
       -i, --poll-interval SEC          Polling interval (default: 1)
-      -r, --retry-wait SEC             Time to retry a task when it is failed. (default: same as timeout)
-      -e, --expire SEC                 Threshold time to expire a task. (default: 345600 (4days))
+      -r, --retry-wait SEC             Time to retry a task when it is failed (default: same as timeout)
+      -e, --expire SEC                 Threshold time to expire a task (default: 345600 (4days))
+      -w, --worker NUM                 Number of worker threads (default: 1)
       -d, --daemon PIDFILE             Daemonize (default: foreground)
       -f, --file PATH.yaml             Read configuration file
-          --database URI               Use RDBMS for the backend database (e.g.: mysql://user@password@localhost/mydb)
+          --database URI               Use RDBMS for the backend database (e.g.: mysql://user:password@localhost/mydb)
           --table NAME                 backend: name of the table (default: perfectqueue)
 
 One of --show, --push, --cancel, --configure, --exec or --run is required. The behavior of the commands is described below.
@@ -83,7 +84,7 @@ Write configuration file and exit. Written configuration file can be used with -
 _Example:_
 
   ## create myqueue.yaml file
-  $ perfectqueue --configure myqueue.yaml --database mysql://root@my:localhost/mydb --run myrun.rb -- my run args
+  $ perfectqueue --configure myqueue.yaml --database mysql://root:my@localhost/mydb --run myrun.rb -- my run args
 
   ## run perfectqueue using the configuration file
   $ perfectqueue -f myqueue.yaml

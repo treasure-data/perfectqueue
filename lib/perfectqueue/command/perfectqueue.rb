@@ -13,6 +13,7 @@ defaults = {
   :timeout => 30,
   :poll_interval => 1,
   :kill_interval => 60,
+  :workers => 1,
   :expire => 345600,
 }
 
@@ -47,11 +48,11 @@ op.on('--run SCRIPT.rb', 'Run method named \'run\' defined in the script') {|s|
   conf[:run] = s
 }
 
-op.on('-t', '--timeout SEC', 'Time for another worker to take over a task when this worker goes down. (default: 30)', Integer) {|i|
+op.on('-t', '--timeout SEC', 'Time for another worker to take over a task when this worker goes down (default: 30)', Integer) {|i|
   conf[:timeout] = i
 }
 
-op.on('-b', '--heartbeat-interval SEC', 'Threshold time to extend the timeout. (heartbeat interval) (default: timeout * 3/4)', Integer) {|i|
+op.on('-b', '--heartbeat-interval SEC', 'Threshold time to extend the timeout (heartbeat interval) (default: timeout * 3/4)', Integer) {|i|
   conf[:heartbeat_interval] = i
 }
 
@@ -67,12 +68,16 @@ op.on('-i', '--poll-interval SEC', 'Polling interval (default: 1)', Integer) {|i
   conf[:poll_interval] = i
 }
 
-op.on('-r', '--retry-wait SEC', 'Time to retry a task when it is failed. (default: same as timeout)', Integer) {|i|
+op.on('-r', '--retry-wait SEC', 'Time to retry a task when it is failed (default: same as timeout)', Integer) {|i|
   conf[:retry_wait] = i
 }
 
-op.on('-e', '--expire SEC', 'Threshold time to expire a task. (default: 345600 (4days))', Integer) {|i|
+op.on('-e', '--expire SEC', 'Threshold time to expire a task (default: 345600 (4days))', Integer) {|i|
   conf[:expire] = i
+}
+
+op.on('-w', '--worker NUM', 'Number of worker threads (default: 1)', Integer) {|i|
+  conf[:workers] = i
 }
 
 op.on('-d', '--daemon PIDFILE', 'Daemonize (default: foreground)') {|s|
@@ -83,7 +88,7 @@ op.on('-f', '--file PATH.yaml', 'Read configuration file') {|s|
   conf[:file] = s
 }
 
-op.on('--database URI', 'Use RDBMS for the backend database (e.g.: mysql://user@password@localhost/mydb)') {|s|
+op.on('--database URI', 'Use RDBMS for the backend database (e.g.: mysql://user:password@localhost/mydb)') {|s|
   conf[:backend_database] = s
 }
 

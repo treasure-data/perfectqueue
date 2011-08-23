@@ -86,17 +86,17 @@ class BackendTest < Test::Unit::TestCase
     db1.submit('test2', 'data2', time-1)
     db1.submit('test3', 'data3', time+1)
 
-    id, created_at, data = db2.acquire(time+TIMEOUT)
+    id, created_at, data = db2.acquire(time+TIMEOUT, time+1)
     assert_equal 'test2', id
     assert_equal time-1, created_at
     assert_equal 'data2', data
 
-    id, created_at, data = db2.acquire(time+TIMEOUT)
+    id, created_at, data = db2.acquire(time+TIMEOUT, time+1)
     assert_equal 'test1', id
     assert_equal time, created_at
     assert_equal 'data1', data
 
-    id, created_at, data = db2.acquire(time+TIMEOUT)
+    id, created_at, data = db2.acquire(time+TIMEOUT, time+1)
     assert_equal 'test3', id
     assert_equal time+1, created_at
     assert_equal 'data3', data

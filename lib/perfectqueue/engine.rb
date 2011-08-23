@@ -11,7 +11,7 @@ class Engine
     @poll_interval = conf[:poll_interval] || 1
     @expire = conf[:expire] || 345600
 
-    num_workers = 1
+    num_workers = conf[:workers] || 1
     @workers = (1..num_workers).map {
       Worker.new(self, conf)
     }
