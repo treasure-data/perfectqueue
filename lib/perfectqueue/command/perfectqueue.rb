@@ -1,0 +1,266 @@
+require 'optparse'
+
+op = OptionParser.new
+
+op.banner += " [-- <ARGV-for-exec-or-run>]"
+
+type = nil
+id = nil
+data = nil
+confout = nil
+
+defaults = {
+  :timeout => 30,
+  :poll_interval => 1,
+  :kill_interval => 60,
+  :expire => 345600,
+}
+
+conf = { }
+
+op.on('--push ID=DATA', 'Push a task to the queue') {|s|
+  type = :push
+  id, data = s.split('=',2)
+}
+
+op.on('--show', 'Show queued tasks', TrueClass) {|b|
+  type = :show
+}
+
+op.on('--cancel ID', 'Cancel a queued task') {|s|
+  type = :cancel
+  id = s
+}
+
+op.on('--configure PATH.yaml', 'Write configuration file') {|s|
+  type = :conf
+  confout = s
+}
+
+op.on('--exec COMMAND', 'Execute command') {|s|
+  type = :exec
+  conf[:exec] = s
+}
+
+op.on('--run SCRIPT.rb', 'Run method named \'run\' defined in the script') {|s|
+  type = :run
+  conf[:run] = s
+}
+
+op.on('-t', '--timeout SEC', 'Time for another worker to take over a task when this worker goes down. (default: 30)', Integer) {|i|
+  conf[:timeout] = i
+}
+
+op.on('-b', '--heartbeat-interval SEC', 'Threshold time to extend the timeout. (heartbeat interval) (default: timeout * 3/4)', Integer) {|i|
+  conf[:heartbeat_interval] = i
+}
+
+op.on('-x', '--kill-timeout SEC', 'Threshold time to kill a task process (default: timeout * 10)', Integer) {|i|
+  conf[:kill_timeout] = i
+}
+
+op.on('-X', '--kill-interval SEC', 'Threshold time to retry killing a task process (default: 60)', Integer) {|i|
+  conf[:kill_interval] = i
+}
+
+op.on('-i', '--poll-interval SEC', 'Polling interval (default: 1)', Integer) {|i|
+  conf[:poll_interval] = i
+}
+
+op.on('-r', '--retry-wait SEC', 'Time to retry a task when it is failed. (default: same as timeout)', Integer) {|i|
+  conf[:retry_wait] = i
+}
+
+op.on('-e', '--expire SEC', 'Threshold time to expire a task. (default: 345600 (4days))', Integer) {|i|
+  conf[:expire] = i
+}
+
+op.on('-d', '--daemon PIDFILE', 'Daemonize (default: foreground)') {|s|
+  conf[:daemon] = s
+}
+
+op.on('-f', '--file PATH.yaml', 'Read configuration file') {|s|
+  conf[:file] = s
+}
+
+op.on('--database URI', 'Use RDBMS for the backend database (e.g.: mysql://user@password@localhost/mydb)') {|s|
+  conf[:backend_database] = s
+}
+
+op.on('--table NAME', 'backend: name of the table (default: perfectqueue)') {|s|
+  conf[:backend_table] = s
+}
+
+
+(class<<self;self;end).module_eval do
+  define_method(:usage) do |msg|
+    puts op.to_s
+    puts "error: #{msg}" if msg
+    exit 1
+  end
+end
+
+
+begin
+  if eqeq = ARGV.index('--')
+    argv = ARGV.slice!(0, eqeq)
+    ARGV.slice!(0)
+  else
+    argv = ARGV.slice!(0..-1)
+  end
+  op.parse!(argv)
+
+  if argv.length != 0
+    usage nil
+  end
+
+  if conf[:file]
+    require 'yaml'
+    yaml = YAML.load File.read(conf[:file])
+    y = {}
+    yaml.each_pair {|k,v| y[k.to_sym] = v }
+
+    conf = defaults.merge(y).merge(conf)
+
+    if ARGV.empty? && conf[:args]
+      ARGV.clear
+      ARGV.concat conf[:args]
+    end
+  else
+    conf = defaults.merge(conf)
+  end
+
+  unless type
+    if conf[:run]
+      type = :run
+    elsif conf[:exec]
+      type = :exec
+    else
+      raise "--show, --push, --cancel, --configure, --exec or --run is required"
+    end
+  end
+
+  unless conf[:heartbeat_interval]
+    conf[:heartbeat_interval] = conf[:timeout] * 3/4
+  end
+
+  unless conf[:kill_timeout]
+    conf[:kill_timeout] = conf[:timeout] * 10
+  end
+
+  unless conf[:retry_wait]
+    conf[:retry_wait] = conf[:timeout]
+  end
+
+  if conf[:timeout] < conf[:heartbeat_interval]
+    raise "--heartbeat-interval(=#{conf[:heartbeat_interval]}) must be larger than --timeout(=#{conf[:timeout]})"
+  end
+
+  if conf[:backend_database]
+    conf[:backend_table] ||= 'perfectqueue'
+    backend_proc = Proc.new {
+      PerfectQueue::RDBBackend.new(conf[:backend_database], conf[:backend_table])
+    }
+  else
+    raise "--database URI is required"
+  end
+
+rescue
+  usage $!.to_s
+end
+
+
+if confout
+  require 'yaml'
+
+  conf.delete(:file)
+  conf[:args] = ARGV
+
+  y = {}
+  conf.each_pair {|k,v| y[k.to_s] = v }
+
+  File.open(confout, "w") {|f|
+    f.write y.to_yaml
+  }
+  exit 0
+end
+
+
+require 'logger'
+require 'perfectqueue'
+require 'perfectqueue/backend/rdb'
+
+backend = backend_proc.call
+
+case type
+when :show
+  format = "%26s %26s %26s  %s"
+  puts format % ["id", "created_at", "timeout", "data"]
+  n = 0
+  backend.list {|id,created_at,data,timeout|
+    puts format % [id, Time.at(created_at), Time.at(timeout), data]
+    n += 1
+  }
+  puts "#{n} entries."
+
+when :cancel
+  canceled = backend.cancel(id)
+  if canceled
+    puts "Task id=#{id} is canceled."
+  else
+    puts "Task id=#{id} does not exist."
+  end
+
+when :push
+  backend.submit(id, data, Time.now.to_i)
+  puts "Task id=#{id} is submitted."
+
+when :exec, :run
+  if conf[:daemon]
+    exit!(0) if fork
+    Process.setsid
+    exit!(0) if fork
+    File.umask(0)
+    STDIN.reopen("/dev/null")
+    STDOUT.reopen("/dev/null", "w")
+    STDERR.reopen("/dev/null", "w")
+    File.open(conf[:daemon], "w") {|f|
+      f.write Process.pid.to_s
+    }
+  end
+
+  if type == :run
+    load File.expand_path(conf[:run])
+    run_class = eval('Run')
+  else
+    require 'shellwords'
+    cmd = ARGV.map {|a| Shellwords.escape(a) }.join(' ')
+    Run = Class.new(PerfectQueue::ExecRunner) do
+      define_method(:initialize) {|task|
+        super(cmd, task)
+      }
+    end
+    run_class = Run
+  end
+
+  conf[:run_class] = run_class
+
+  log = Logger.new(STDOUT)
+  engine = PerfectQueue::Engine.new(backend, log, conf)
+
+  trap :INT do
+    log.info "shutting down..."
+    engine.stop
+  end
+
+  trap :TERM do
+    log.info "shutting down..."
+    engine.stop
+  end
+
+  log.info "PerfectQueue-#{PerfectQueue::VERSION}"
+
+  engine.run
+  engine.shutdown
+end
+

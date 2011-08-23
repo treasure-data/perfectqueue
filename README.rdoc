@@ -1,0 +1,135 @@
+= PerfectQueue
+
+Exactly-once distributed queue built on RDBMS or SimpleDB
+
+
+== Architecture
+
+PerfectQueue uses following database schema:
+
+  (
+    id:string    -- unique key of the task
+    data:blob    -- additional attributes
+    timeout:int
+  )
+
+1. list: lists tasks whose timeout column is old from the backend database.
+2. lock: updates timeout column of the first task
+3. run: executes a command or runs a script
+   * if the task takes long time, the timeout column. this is repeated until it is killed.
+   * if the task takes more long time, kills the process.
+4. if it succeeded, removes the row from the backend database.
+5. if it failed, leave the row and expect to be retried.
+
+
+== Usage
+
+  Usage: perfectqueue [options] [-- <ARGV-for-exec-or-run>]
+          --push ID=DATA               Push a task to the queue
+          --show                       Show queued tasks
+          --cancel ID                  Cancel a queued task
+          --configure PATH.yaml        Write configuration file
+          --exec COMMAND               Execute command
+          --run SCRIPT.rb              Run method named 'run' defined in the script
+      -t, --timeout SEC                Time for another worker to take over a task when this worker goes down. (default: 30)
+      -b  --heartbeat-interval SEC     Threshold time to extend the timeout. (heartbeat interval) (default: timeout * 3/4)
+      -x, --kill-timeout SEC           Threshold time to kill a task process (default: timeout * 10)
+      -X, --kill-interval SEC          Threshold time to retry killing a task process (default: 60)
+      -i, --poll-interval SEC          Polling interval (default: 1)
+      -r, --retry-wait SEC             Time to retry a task when it is failed. (default: same as timeout)
+      -e, --expire SEC                 Threshold time to expire a task. (default: 345600 (4days))
+      -d, --daemon PIDFILE             Daemonize (default: foreground)
+      -f, --file PATH.yaml             Read configuration file
+          --database URI               Use RDBMS for the backend database (e.g.: mysql://user@password@localhost/mydb)
+          --table NAME                 backend: name of the table (default: perfectqueue)
+
+One of --show, --push, --cancel, --configure, --exec or --run is required. The behavior of the commands is described below.
+
+
+=== push
+
+Push a task to the queue.
+
+_Example:_
+
+  $ perfectqueue --database sqlite://test.db --push 'task1={"attr1":"val1","attr":"val2"}'
+
+
+=== show
+
+Show queued tasks.
+
+_Example:_
+
+  $ perfectqueue --database sqlite://test.db --show
+                          id                 created_at                    timeout  data
+                       task1  2011-08-23 23:07:45 +0900  2011-08-23 23:07:45 +0900  {"attr1":"val1","attr":"val2"}
+  1 entries.
+
+
+=== cancel
+
+Cancel a queued task.
+
+_Example:_
+
+  $ perfectqueue --database sqlite://test.db --cancel task1
+  Task id=task1 is canceled.
+
+=== configure
+
+Write configuration file and exit. Written configuration file can be used with -f option:
+
+_Example:_
+
+  ## create myqueue.yaml file
+  $ perfectqueue --configure myqueue.yaml --database mysql://root@my:localhost/mydb --run myrun.rb -- my run args
+
+  ## run perfectqueue using the configuration file
+  $ perfectqueue -f myqueue.yaml
+
+
+=== exec
+
+Execute a command when a task is received. The the data column is passed to the stdin and the id column passed to the last argument. The command have to exit with status code 0 when it succeeded.
+
+_Example:_
+
+  #!/usr/bin/env ruby
+  
+  require 'json'
+  js = JSON.load(STDIN.read)
+  puts "received: id=#{ARGV.last} #{js.inspect}"
+  
+  # $ perfectqueue --database sqlite://test.db --exec ./this_file -- my run args
+
+When the kill timeout (-x, --kill-timeout) is elapsed, SIGTERM signal will be sent to the child process. The signal will be repeated every few seconds (-X, --kill-interval).
+
+
+=== run
+
+This is same as 'exec' except that it creates a instance of a class named 'Run' defined in the file. The class should has 'initialize(task)', 'run' and 'kill' method. You can get data column and id column of the task from the argument of the initialize method. It is assumed it succeeded if the method doesn't any raise errors.
+
+_Example:_
+
+  require 'json'
+  
+  class Run
+    def initialize(task)
+      @task = task
+    end
+  
+    def run
+      js = JSON.load(@task.data)
+      puts "received: id=#{@task.id} #{js.inspect}"
+    end
+  
+    def kill
+      puts "kill!"
+    end
+  end
+  
+  # $ perfectqueue --database sqlite://test.db --run ./this_file.rb -- my run args
+
+When the kill timeout (-x, --klill-timeout) is elapsed, Run#kill method will be called (if it is defined). It will be repeated every few seconds (-X, --kill-retry).
+
