@@ -245,8 +245,12 @@ when :cancel
   end
 
 when :push
-  backend.submit(id, data, Time.now.to_i)
-  puts "Task id=#{id} is submitted."
+  submitted = backend.submit(id, data, Time.now.to_i)
+  if submitted
+    puts "Task id=#{id} is submitted."
+  else
+    puts "Task id=#{id} already exists."
+  end
 
 when :exec, :run
   if conf[:daemon]

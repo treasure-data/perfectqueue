@@ -6,6 +6,10 @@ class BackendTest < Test::Unit::TestCase
   DB_URI = "sqlite://#{DB_PATH}"
 
   def clean_backend
+    db = open_backend
+    db.list {|id,created_at,data,timeout|
+      db.cancel(id)
+    }
     FileUtils.rm_f DB_PATH
   end
 
@@ -26,13 +30,14 @@ class BackendTest < Test::Unit::TestCase
       db1.submit('test1', 'data1', time)
     end
 
-    id, created_at, data = db2.acquire(time+TIMEOUT)
-    assert_equal 'test1', id
-    assert_equal time, created_at
-    assert_equal 'data1', data
+    token, task = db2.acquire(time+TIMEOUT)
+    assert_not_equal nil, task
+    assert_equal 'test1', task.id
+    assert_equal time, task.created_at
+    assert_equal 'data1', task.data
 
-    id_, created_at, data = db3.acquire(time+TIMEOUT)
-    assert_equal nil, id_
+    token_, task = db3.acquire(time+TIMEOUT)
+    assert_equal nil, token_
   end
 
   it 'finish' do
@@ -44,12 +49,13 @@ class BackendTest < Test::Unit::TestCase
     time = Time.now.to_i
 
     db1.submit('test1', 'data1', time)
-    id, created_at, data = db1.acquire(time+TIMEOUT)
+    token, task = db1.acquire(time+TIMEOUT)
+    assert_not_equal nil, task
 
-    db1.finish(id)
+    db1.finish(token)
 
-    id_, created_at, data = db2.acquire(time+TIMEOUT)
-    assert_equal nil, id_
+    token_, task = db2.acquire(time+TIMEOUT)
+    assert_equal nil, token_
   end
 
   it 'canceled' do
@@ -61,15 +67,16 @@ class BackendTest < Test::Unit::TestCase
     time = Time.now.to_i
 
     db1.submit('test1', 'data1', time)
-    id, created_at, data = db1.acquire(time+TIMEOUT)
+    token, task = db1.acquire(time+TIMEOUT)
+    assert_not_equal nil, task
 
-    db1.cancel(id)
+    db1.cancel(task.id)
 
-    id_, created_at, data = db2.acquire(time+TIMEOUT)
-    assert_equal nil, id_
+    token_, task = db2.acquire(time+TIMEOUT)
+    assert_equal nil, token_
 
     assert_raise(PerfectQueue::CanceledError) do
-      db1.update(id, time+TIMEOUT)
+      db1.update(token, time+TIMEOUT)
     end
   end
 
@@ -86,20 +93,23 @@ class BackendTest < Test::Unit::TestCase
     db1.submit('test2', 'data2', time-1)
     db1.submit('test3', 'data3', time+1)
 
-    id, created_at, data = db2.acquire(time+TIMEOUT, time+1)
-    assert_equal 'test2', id
-    assert_equal time-1, created_at
-    assert_equal 'data2', data
+    token, task = db2.acquire(time+TIMEOUT, time+1)
+    assert_not_equal nil, task
+    assert_equal 'test2', task.id
+    assert_equal time-1, task.created_at
+    assert_equal 'data2', task.data
 
-    id, created_at, data = db2.acquire(time+TIMEOUT, time+1)
-    assert_equal 'test1', id
-    assert_equal time, created_at
-    assert_equal 'data1', data
+    token, task = db2.acquire(time+TIMEOUT, time+1)
+    assert_not_equal nil, task
+    assert_equal 'test1', task.id
+    assert_equal time, task.created_at
+    assert_equal 'data1', task.data
 
-    id, created_at, data = db2.acquire(time+TIMEOUT, time+1)
-    assert_equal 'test3', id
-    assert_equal time+1, created_at
-    assert_equal 'data3', data
+    token, task = db2.acquire(time+TIMEOUT, time+1)
+    assert_not_equal nil, task
+    assert_equal 'test3', task.id
+    assert_equal time+1, task.created_at
+    assert_equal 'data3', task.data
   end
 
   it 'timeout' do
@@ -112,15 +122,17 @@ class BackendTest < Test::Unit::TestCase
 
     db1.submit('test1', 'data1', time)
 
-    id, created_at, data = db1.acquire(time+TIMEOUT)
-    assert_equal 'test1', id
-    assert_equal time, created_at
-    assert_equal 'data1', data
+    token, task = db1.acquire(time+TIMEOUT)
+    assert_not_equal nil, task
+    assert_equal 'test1', task.id
+    assert_equal time, task.created_at
+    assert_equal 'data1', task.data
 
-    id, created_at, data = db2.acquire(time+TIMEOUT*2, time+TIMEOUT)
-    assert_equal 'test1', id
-    assert_equal time, created_at
-    assert_equal 'data1', data
+    token, task = db2.acquire(time+TIMEOUT*2, time+TIMEOUT)
+    assert_not_equal nil, task
+    assert_equal 'test1', task.id
+    assert_equal time, task.created_at
+    assert_equal 'data1', task.data
   end
 
   it 'extend' do
@@ -133,19 +145,21 @@ class BackendTest < Test::Unit::TestCase
 
     db1.submit('test1', 'data1', time)
 
-    id, created_at, data = db1.acquire(time+TIMEOUT)
+    token, task = db1.acquire(time+TIMEOUT)
+    assert_not_equal nil, task
 
     assert_nothing_raised do
-      db1.update(id, time+TIMEOUT)
+      db1.update(token, time+TIMEOUT)
     end
 
-    id_, created_at, data = db2.acquire(time+TIMEOUT, time)
-    assert_equal nil, id_
+    token_, task = db2.acquire(time+TIMEOUT, time)
+    assert_equal nil, token_
 
-    id, created_at, data = db2.acquire(time+TIMEOUT*2, time+TIMEOUT)
-    assert_equal 'test1', id
-    assert_equal time, created_at
-    assert_equal 'data1', data
+    token, task = db2.acquire(time+TIMEOUT*2, time+TIMEOUT)
+    assert_not_equal nil, task
+    assert_equal 'test1', task.id
+    assert_equal time, task.created_at
+    assert_equal 'data1', task.data
   end
 
   it 'release' do
@@ -158,23 +172,25 @@ class BackendTest < Test::Unit::TestCase
 
     db1.submit('test1', 'data1', time)
 
-    id, created_at, data = db1.acquire(time+TIMEOUT)
+    token, task = db1.acquire(time+TIMEOUT)
+    assert_not_equal nil, task
 
     assert_nothing_raised do
-      db1.update(id, time+TIMEOUT)
+      db1.update(token, time+TIMEOUT)
     end
 
-    id_, created_at, data = db2.acquire(time+TIMEOUT, time)
-    assert_equal nil, id_
+    token_, task = db2.acquire(time+TIMEOUT, time)
+    assert_equal nil, token_
 
     assert_nothing_raised do
-      db1.update(id, time)
+      db1.update(token, time)
     end
 
-    id, created_at, data = db2.acquire(time+TIMEOUT, time)
-    assert_equal 'test1', id
-    assert_equal time, created_at
-    assert_equal 'data1', data
+    token, task = db2.acquire(time+TIMEOUT, time)
+    assert_not_equal nil, task
+    assert_equal 'test1', task.id
+    assert_equal time, task.created_at
+    assert_equal 'data1', task.data
   end
 end
 

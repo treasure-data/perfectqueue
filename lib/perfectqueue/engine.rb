@@ -43,20 +43,20 @@ class Engine
       begin
 
         until finished?
-          id, created_at, data = @backend.acquire(Time.now.to_i+@timeout)
+          token, task = @backend.acquire(Time.now.to_i+@timeout)
 
-          unless id
+          unless token
             sleep @poll_interval
             next
           end
           if created_at > Time.now.to_i+@expire
-            @log.warn "canceling expired task id=#{id}"
-            @backend.cancel(id)
+            @log.warn "canceling expired task id=#{task.id}"
+            @backend.cancel(token)
             next
           end
 
-          @log.info "acquired task id=#{id}"
-          w.submit(id, data)
+          @log.info "acquired task id=#{task.id}"
+          w.submit(token, task)
           w = nil
           break
         end
@@ -118,7 +118,7 @@ class ExecRunner
     @task = task
     @iobuf = ''
     @pid = nil
-    @next_kill = :TERM
+    @kill_signal = :TERM
   end
 
   def run
@@ -141,8 +141,8 @@ class ExecRunner
   end
 
   def kill
-    Process.kill(@next_kill, @pid)
-    @next_kill = :KILL
+    Process.kill(@kill_signal, @pid)
+    @kill_signal = :KILL
   end
 end
 

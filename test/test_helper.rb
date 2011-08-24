@@ -3,6 +3,7 @@ $LOAD_PATH << File.dirname(__FILE__)+"/../lib"
 require 'perfectqueue'
 require 'shellwords'
 require 'perfectqueue/backend/rdb'
+require 'perfectqueue/backend/simpledb'
 require 'fileutils'
 
 class Test::Unit::TestCase

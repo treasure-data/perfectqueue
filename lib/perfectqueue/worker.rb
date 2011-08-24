@@ -2,16 +2,6 @@
 module PerfectQueue
 
 
-class Task
-  def initialize(id, data)
-    @id = id
-    @data = data
-  end
-
-  attr_reader :id, :data
-end
-
-
 class MonitorThread
   def initialize(engine, conf)
     @engine = engine
@@ -24,7 +14,7 @@ class MonitorThread
     @kill_interval = conf[:kill_interval] || 60
     @retry_wait = conf[:retry_wait] || nil
 
-    @id = nil
+    @token = nil
     @heartbeat_time = nil
     @kill_time = nil
     @kill_proc = nil
@@ -43,7 +33,7 @@ class MonitorThread
       @mutex.synchronize {
         while true
           return if @engine.finished?
-          break if @id
+          break if @token
           @cond.wait(@mutex)
         end
       }
@@ -51,7 +41,7 @@ class MonitorThread
         sleep 1
         @mutex.synchronize {
           return if @engine.finished?
-          break unless @id
+          break unless @token
           now = Time.now.to_i
           try_extend(now)
           try_kill(now)
@@ -64,11 +54,11 @@ class MonitorThread
 
   def try_extend(now)
     if now >= @heartbeat_time && !@canceled
-      @log.debug "extending timeout=#{now+@timeout} id=#{@id}"
+      @log.debug "extending timeout=#{now+@timeout} id=#{@token.id}"
       begin
-        @backend.update(@id, now+@timeout)
+        @backend.update(@token, now+@timeout)
       rescue CanceledError
-        @log.info "task id=#{@id} is canceled."
+        @log.info "task id=#{@token.id} is canceled."
         @canceled = true
         @kill_time = now
       end
@@ -85,7 +75,7 @@ class MonitorThread
 
   def kill!
     if @kill_proc
-      @log.info "killing #{@id}..."
+      @log.info "killing #{@token.id}..."
       @kill_proc.call rescue nil
     end
   end
@@ -100,10 +90,10 @@ class MonitorThread
     @thread.join
   end
 
-  def set(id)
+  def set(token)
     @mutex.synchronize {
       now = Time.now.to_i
-      @id = id
+      @token = token
       @heartbeat_time = now + @heartbeat_interval
       @kill_time = now + @kill_timeout
       @kill_proc = nil
@@ -119,15 +109,15 @@ class MonitorThread
   def reset(success)
     @mutex.synchronize {
       if success
-        @backend.finish(@id)
+        @backend.finish(@token)
       elsif @retry_wait && !@canceled
         begin
-          @backend.update(@id, Time.now.to_i+@retry_wait)
+          @backend.update(@token, Time.now.to_i+@retry_wait)
         rescue
           # ignore CanceledError
         end
       end
-      @id = nil
+      @token = nil
     }
   end
 end
@@ -141,8 +131,8 @@ class Worker
     @run_class = conf[:run_class]
     @monitor = MonitorThread.new(engine, conf)
 
-    @id = nil
-    @data = nil
+    @token = nil
+    @task = nil
     @mutex = Mutex.new
     @cond = ConditionVariable.new
   end
@@ -157,23 +147,22 @@ class Worker
       @mutex.synchronize {
         while true
           return if @engine.finished?
-          break if @id
+          break if @token
           @cond.wait(@mutex)
         end
       }
-      process(@id, @data)
+      process(@token, @task)
     end
   rescue
     @engine.stop($!)
   end
 
-  def process(id, data)
-    @log.info "processing task id=#{id}"
+  def process(token, task)
+    @log.info "processing task id=#{token.id}"
 
-    @monitor.set(id)
+    @monitor.set(token)
     success = false
     begin
-      task = Task.new(id, data)
       run = @run_class.new(task)
 
       if run.respond_to?(:kill)
@@ -182,11 +171,11 @@ class Worker
 
       run.run
 
-      @log.info "finished id=#{id}"
+      @log.info "finished id=#{token.id}"
       success = true
 
     rescue
-      @log.info "failed id=#{id}: #{$!}"
+      @log.info "failed id=#{token.id}: #{$!}"
 
     ensure
       @monitor.reset(success)
@@ -207,10 +196,10 @@ class Worker
     @thread.join
   end
 
-  def submit(id, data)
+  def submit(token, task)
     @mutex.synchronize {
-      @id = id
-      @data = data
+      @token = token
+      @task = task
       @cond.broadcast
     }
   end

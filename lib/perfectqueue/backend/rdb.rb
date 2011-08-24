@@ -61,7 +61,7 @@ class RDBBackend < Backend
         @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` WHERE timeout <= ? ORDER BY created_at ASC LIMIT #{MAX_SELECT_ROW};", now) {|row|
           n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?;", timeout, row[:id], row[:timeout]].update
           if n > 0
-            return row[:id], row[:created_at], row[:data]
+            return row[:id], Task.new(row[:id], row[:created_at], row[:data])
           end
           rows += 1
         }
@@ -95,8 +95,12 @@ class RDBBackend < Backend
 
   def submit(id, data, time=Time.now.to_i)
     connect {
-      n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at) VALUES (?, ?, ?, ?);", id, time, data, time].insert
-      nil
+      begin
+        n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at) VALUES (?, ?, ?, ?);", id, time, data, time].insert
+        return true
+      rescue Sequel::DatabaseError
+        return nil
+      end
     }
   end
 end
