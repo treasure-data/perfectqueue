@@ -112,7 +112,8 @@ Use _perfectqueue_ command to execute a command.
           --configure PATH.yaml        Write configuration file
           --exec COMMAND               Execute command
           --run SCRIPT.rb              Run method named 'run' defined in the script
-      -t, --timeout SEC                Time for another worker to take over a task when this worker goes down (default: 30)
+      -C, --run-class                  Class name for --run (default: ::Run)
+      -t, --timeout SEC                Time for another worker to take over a task when this worker goes down (default: 600)
       -b  --heartbeat-interval SEC     Threshold time to extend the timeout (heartbeat interval) (default: timeout * 3/4)
       -x, --kill-timeout SEC           Threshold time to kill a task process (default: timeout * 10)
       -X, --kill-interval SEC          Threshold time to retry killing a task process (default: 60)

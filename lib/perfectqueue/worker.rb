@@ -8,7 +8,7 @@ class MonitorThread
     @log = @engine.log
     @backend = engine.backend
 
-    @timeout = conf[:timeout] || 30
+    @timeout = conf[:timeout] || 600
     @heartbeat_interval = conf[:heartbeat_interval] || @timeout*3/4
     @kill_timeout = conf[:kill_timeout] || @timeout*10
     @kill_interval = conf[:kill_interval] || 60

@@ -1,8 +1,10 @@
 require 'optparse'
+require 'perfectqueue/version'
 
 op = OptionParser.new
 
 op.banner += " [-- <ARGV-for-exec-or-run>]"
+op.version = PerfectQueue::VERSION
 
 type = nil
 id = nil
@@ -10,7 +12,7 @@ data = nil
 confout = nil
 
 defaults = {
-  :timeout => 30,
+  :timeout => 600,
   :poll_interval => 1,
   :kill_interval => 60,
   :workers => 1,
@@ -48,7 +50,11 @@ op.on('--run SCRIPT.rb', 'Run method named \'run\' defined in the script') {|s|
   conf[:run] = s
 }
 
-op.on('-t', '--timeout SEC', 'Time for another worker to take over a task when this worker goes down (default: 30)', Integer) {|i|
+op.on('-C', '--run-class', 'Class name for --run (default: ::Run)') {|s|
+  conf[:run_class] = s
+}
+
+op.on('-t', '--timeout SEC', 'Time for another worker to take over a task when this worker goes down (default: 600)', Integer) {|i|
   conf[:timeout] = i
 }
 
@@ -268,7 +274,7 @@ when :exec, :run
 
   if type == :run
     load File.expand_path(conf[:run])
-    run_class = eval('Run')
+    run_class = eval(conf[:run_class] || 'Run')
   else
     require 'shellwords'
     cmd = ARGV.map {|a| Shellwords.escape(a) }.join(' ')
