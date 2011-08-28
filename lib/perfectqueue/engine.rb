@@ -49,7 +49,7 @@ class Engine
             sleep @poll_interval
             next
           end
-          if created_at > Time.now.to_i+@expire
+          if task.created_at > Time.now.to_i+@expire
             @log.warn "canceling expired task id=#{task.id}"
             @backend.cancel(token)
             next

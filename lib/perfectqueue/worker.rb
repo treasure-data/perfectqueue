@@ -54,11 +54,11 @@ class MonitorThread
 
   def try_extend(now)
     if now >= @heartbeat_time && !@canceled
-      @log.debug "extending timeout=#{now+@timeout} id=#{@token.id}"
+      @log.debug "extending timeout=#{now+@timeout} id=#{@task.id}"
       begin
         @backend.update(@token, now+@timeout)
       rescue CanceledError
-        @log.info "task id=#{@token.id} is canceled."
+        @log.info "task id=#{@task.id} is canceled."
         @canceled = true
         @kill_time = now
       end
@@ -75,7 +75,7 @@ class MonitorThread
 
   def kill!
     if @kill_proc
-      @log.info "killing #{@token.id}..."
+      @log.info "killing #{@task.id}..."
       @kill_proc.call rescue nil
     end
   end
@@ -151,14 +151,19 @@ class Worker
           @cond.wait(@mutex)
         end
       }
-      process(@token, @task)
+      begin
+        process(@token, @task)
+      ensure
+        @token = nil
+        @engine.release_worker(self)
+      end
     end
   rescue
     @engine.stop($!)
   end
 
   def process(token, task)
-    @log.info "processing task id=#{token.id}"
+    @log.info "processing task id=#{task.id}"
 
     @monitor.set(token)
     success = false
@@ -171,19 +176,15 @@ class Worker
 
       run.run
 
-      @log.info "finished id=#{token.id}"
+      @log.info "finished id=#{task.id}"
       success = true
 
     rescue
-      @log.info "failed id=#{token.id}: #{$!}"
+      @log.info "failed id=#{task.id}: #{$!}"
 
     ensure
       @monitor.reset(success)
     end
-
-  ensure
-    @id = nil
-    @engine.release_worker(self)
   end
 
   def stop
