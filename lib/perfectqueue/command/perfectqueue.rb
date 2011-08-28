@@ -36,8 +36,8 @@ op.on('--push ID=DATA', 'Push a task to the queue') {|s|
   id, data = s.split('=',2)
 }
 
-op.on('--show', 'Show queued tasks', TrueClass) {|b|
-  type = :show
+op.on('--list', 'Show queued tasks', TrueClass) {|b|
+  type = :list
 }
 
 op.on('--cancel ID', 'Cancel a queued task') {|s|
@@ -185,7 +185,7 @@ begin
     elsif conf[:exec]
       type = :exec
     else
-      raise "--show, --push, --cancel, --configure, --exec or --run is required"
+      raise "--list, --push, --cancel, --configure, --exec or --run is required"
     end
   end
 
@@ -250,7 +250,7 @@ require 'perfectqueue/backend/simpledb'
 backend = backend_proc.call
 
 case type
-when :show
+when :list
   format = "%26s %26s %26s  %s"
   puts format % ["id", "created_at", "timeout", "data"]
   n = 0
