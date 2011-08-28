@@ -26,9 +26,8 @@ class Backend
   def acquire(timeout, now=Time.now.to_i)
   end
 
-  ## => true (success) or false (canceled)
-  # => not defined
-  def finish(token)
+  # => true (success) or false (canceled)
+  def finish(token, delete_timeout=3600, now=Time.now.to_i)
   end
 
   # => nil
@@ -36,7 +35,7 @@ class Backend
   end
 
   # => true (success) or false (not found, canceled or finished)
-  def cancel(id)
+  def cancel(id, delete_timeout=3600, now=Time.now.to_i)
   end
 
   # => true (success) or nil (already exists)

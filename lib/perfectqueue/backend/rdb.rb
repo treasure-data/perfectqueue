@@ -20,7 +20,7 @@ class RDBBackend < Backend
       sql << "  id VARCHAR(256) NOT NULL,"
       sql << "  timeout INT NOT NULL,"
       sql << "  data BLOB NOT NULL,"
-      sql << "  created_at INT NOT NULL,"
+      sql << "  created_at INT,"
       sql << "  PRIMARY KEY (id)"
       sql << ") ENGINE=INNODB;"
     else
@@ -28,7 +28,7 @@ class RDBBackend < Backend
       sql << "  id VARCHAR(256) NOT NULL,"
       sql << "  timeout INT NOT NULL,"
       sql << "  data BLOB NOT NULL,"
-      sql << "  created_at INT NOT NULL,"
+      sql << "  created_at INT,"
       sql << "  PRIMARY KEY (id)"
       sql << ");"
     end
@@ -47,7 +47,7 @@ class RDBBackend < Backend
 
   public
   def list(&block)
-    @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` ORDER BY created_at ASC;") {|row|
+    @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` WHERE created_at IS NOT NULL ORDER BY timeout ASC;") {|row|
       yield row[:id], row[:created_at], row[:data], row[:timeout]
     }
   end
@@ -58,11 +58,19 @@ class RDBBackend < Backend
     connect {
       while true
         rows = 0
-        @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` WHERE timeout <= ? ORDER BY created_at ASC LIMIT #{MAX_SELECT_ROW};", now) {|row|
-          n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?;", timeout, row[:id], row[:timeout]].update
-          if n > 0
-            return row[:id], Task.new(row[:id], row[:created_at], row[:data])
+        @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` WHERE timeout <= ? ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW};", now) {|row|
+
+          unless row[:created_at]
+            # finished/canceled task
+            @db["DELETE FROM `#{@table}` WHERE id=?;", row[:id]].delete
+
+          else
+            n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?;", timeout, row[:id], row[:timeout]].update
+            if n > 0
+              return row[:id], Task.new(row[:id], row[:created_at], row[:data])
+            end
           end
+
           rows += 1
         }
         if rows < MAX_SELECT_ROW
@@ -72,16 +80,16 @@ class RDBBackend < Backend
     }
   end
 
-  def finish(id)
+  def finish(id, delete_timeout=3600, now=Time.now.to_i)
     connect {
-      n = @db["DELETE FROM `#{@table}` WHERE id=?;", id].delete
+      n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL WHERE id=? AND created_at IS NOT NULL;", now+delete_timeout, id].update
       return n > 0
     }
   end
 
   def update(id, timeout)
     connect {
-      n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=?;", timeout, id].update
+      n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND created_at IS NOT NULL;", timeout, id].update
       if n <= 0
         raise CanceledError, "Task id=#{id} is canceled."
       end
@@ -89,8 +97,8 @@ class RDBBackend < Backend
     }
   end
 
-  def cancel(id)
-    finish(id)
+  def cancel(id, delete_timeout=3600, now=Time.now.to_i)
+    finish(id, delete_timeout, now)
   end
 
   def submit(id, data, time=Time.now.to_i)

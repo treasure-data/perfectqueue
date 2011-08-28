@@ -21,14 +21,22 @@ class SimpleDBBackend < Backend
 
   attr_accessor :consistent_read
 
+  def use_consistent_read(b=true)
+    @consistent_read = b
+    self
+  end
+
   def list(&block)
     @domain.items.each {|item|
       id = item.name
       attrs = item.data.attributes
-      created_at = int_decode(attrs['created_at'].first)
-      data = attrs['data'].first
-      timeout = int_decode(attrs['timeout'].first)
-      yield id, created_at, data, timeout
+      salt = attrs['created_at'].first
+      if salt && !salt.empty?
+        created_at = int_decode(salt)
+        data = attrs['data'].first
+        timeout = int_decode(attrs['timeout'].first)
+        yield id, created_at, data, timeout
+      end
     }
   end
 
@@ -44,30 +52,43 @@ class SimpleDBBackend < Backend
                           :limit => MAX_SELECT_ROW) {|itemdata|
         begin
           id = itemdata.name
-          row = itemdata.attributes
-          salt = row['created_at'].first
-          @domain.items[id].attributes.replace('timeout'=>int_encode(timeout),
-              :if=>{'timeout'=>row['timeout'].first})
+          attrs = itemdata.attributes
+          salt = attrs['created_at'].first
 
-          created_at = int_decode(row['created_at'].first)
-          data = row['data'].first
+          if !salt || salt.empty?
+            # finished/canceled task
+            @domain.items[id].delete(:if=>{'created_at'=>''})
 
-          return [id,salt], Task.new(id, created_at, data)
+          else
+            created_at = int_decode(salt)
+            @domain.items[id].attributes.replace('timeout'=>int_encode(timeout),
+                :if=>{'timeout'=>attrs['timeout'].first})
+
+            data = attrs['data'].first
+
+            return [id,salt], Task.new(id, created_at, data)
+          end
 
         rescue AWS::SimpleDB::Errors::ConditionalCheckFailed, AWS::SimpleDB::Errors::AttributeDoesNotExist
         end
-      }
 
+        rows += 1
+      }
       if rows < MAX_SELECT_ROW
         return nil
       end
     end
   end
 
-  def finish(token)
-    # always nil
-    id, salt = *token
-    @domain.items[id].delete
+  def finish(token, delete_timeout=3600, now=Time.now.to_i)
+    begin
+      id, salt = *token
+      @domain.items[id].attributes.replace('timeout'=>int_encode(now+delete_timeout), 'created_at'=>'',
+          :if=>{'created_at'=>salt})
+      return true
+    rescue AWS::SimpleDB::Errors::ConditionalCheckFailed, AWS::SimpleDB::Errors::AttributeDoesNotExist
+      return false
+    end
   end
 
   def update(token, timeout)
@@ -78,19 +99,16 @@ class SimpleDBBackend < Backend
     rescue AWS::SimpleDB::Errors::ConditionalCheckFailed, AWS::SimpleDB::Errors::AttributeDoesNotExist
       raise CanceledError, "Task id=#{id} is canceled."
     end
+    nil
   end
 
-  def cancel(id)
-    begin
-      salt = @domain.items[id].attributes['created_at'].first
-      unless salt
-        return false
-      end
-      @domain.items[id].delete(:if=>{'created_at'=>salt})
-      return true
-    rescue AWS::SimpleDB::Errors::ConditionalCheckFailed, AWS::SimpleDB::Errors::AttributeDoesNotExist
+  def cancel(id, delete_timeout=3600, now=Time.now.to_i)
+    salt = @domain.items[id].attributes['created_at'].first
+    unless salt
       return false
     end
+    token = [id,salt]
+    finish(token, delete_timeout, now)
   end
 
   def submit(id, data, time=Time.now.to_i)
