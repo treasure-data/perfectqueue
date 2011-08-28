@@ -21,6 +21,16 @@ defaults = {
 
 conf = { }
 
+
+op.on('-o', '--log PATH', "log file path") {|s|
+  conf[:log] = s
+}
+
+op.on('-v', '--verbose', "verbose mode", TrueClass) {|b|
+  conf[:verbose] = true
+}
+op.separator("")
+
 op.on('--push ID=DATA', 'Push a task to the queue') {|s|
   type = :push
   id, data = s.split('=',2)
@@ -40,6 +50,8 @@ op.on('--configure PATH.yaml', 'Write configuration file') {|s|
   confout = s
 }
 
+op.separator("")
+
 op.on('--exec COMMAND', 'Execute command') {|s|
   type = :exec
   conf[:exec] = s
@@ -48,6 +60,12 @@ op.on('--exec COMMAND', 'Execute command') {|s|
 op.on('--run SCRIPT.rb', 'Run method named \'run\' defined in the script') {|s|
   type = :run
   conf[:run] = s
+}
+
+op.separator("")
+
+op.on('-f', '--file PATH.yaml', 'Read configuration file') {|s|
+  conf[:file] = s
 }
 
 op.on('-C', '--run-class', 'Class name for --run (default: ::Run)') {|s|
@@ -82,17 +100,7 @@ op.on('-e', '--expire SEC', 'Threshold time to expire a task (default: 345600 (4
   conf[:expire] = i
 }
 
-op.on('-w', '--worker NUM', 'Number of worker threads (default: 1)', Integer) {|i|
-  conf[:workers] = i
-}
-
-op.on('-d', '--daemon PIDFILE', 'Daemonize (default: foreground)') {|s|
-  conf[:daemon] = s
-}
-
-op.on('-f', '--file PATH.yaml', 'Read configuration file') {|s|
-  conf[:file] = s
-}
+op.separator("")
 
 op.on('--database URI', 'Use RDBMS for the backend database (e.g.: mysql://user:password@localhost/mydb)') {|s|
   conf[:backend_database] = s
@@ -112,6 +120,16 @@ op.on('-k', '--key-id ID', 'AWS Access Key ID') {|s|
 
 op.on('-s', '--secret-key KEY', 'AWS Secret Access Key') {|s|
   conf[:backend_secret_key] = s
+}
+
+op.separator("")
+
+op.on('-w', '--worker NUM', 'Number of worker threads (default: 1)', Integer) {|i|
+  conf[:workers] = i
+}
+
+op.on('-d', '--daemon PIDFILE', 'Daemonize (default: foreground)') {|s|
+  conf[:daemon] = s
 }
 
 op.on('-o', '--log PATH', "log file path") {|s|
