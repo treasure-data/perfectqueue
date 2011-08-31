@@ -37,28 +37,32 @@ class MonitorThread
           @cond.wait(@mutex)
         end
       }
-      while true
-        sleep 1
-        @mutex.synchronize {
-          return if @engine.finished?
-          break unless @token
-          now = Time.now.to_i
-          try_extend(now)
-          try_kill(now)
-        }
-      end
+      process
     end
   rescue
     @engine.stop($!)
   end
 
+  def process
+    while true
+      sleep 1
+      @mutex.synchronize {
+        return if @engine.finished?
+        return unless @token
+        now = Time.now.to_i
+        try_extend(now)
+        try_kill(now)
+      }
+    end
+  end
+
   def try_extend(now)
     if now >= @heartbeat_time && !@canceled
-      @log.debug "extending timeout=#{now+@timeout} id=#{@task.id}"
+      @log.debug "extending timeout=#{now+@timeout} id=#{@task_id}"
       begin
         @backend.update(@token, now+@timeout)
       rescue CanceledError
-        @log.info "task id=#{@task.id} is canceled."
+        @log.info "task id=#{@task_id} is canceled."
         @canceled = true
         @kill_time = now
       end
@@ -75,8 +79,15 @@ class MonitorThread
 
   def kill!
     if @kill_proc
-      @log.info "killing #{@task.id}..."
-      @kill_proc.call rescue nil
+      @log.info "killing id=#{@task_id}..."
+      begin
+        @kill_proc.call
+      rescue
+        @log.info "kill failed id=#{@task_id}: #{$!}"
+        $!.backtrace.each {|bt|
+          $log.debug "  #{bt}"
+        }
+      end
     end
   end
 
@@ -90,10 +101,11 @@ class MonitorThread
     @thread.join
   end
 
-  def set(token)
+  def set(token, task_id)
     @mutex.synchronize {
       now = Time.now.to_i
       @token = token
+      @task_id = task_id
       @heartbeat_time = now + @heartbeat_interval
       @kill_time = now + @kill_timeout
       @kill_proc = nil
@@ -165,7 +177,7 @@ class Worker
   def process(token, task)
     @log.info "processing task id=#{task.id}"
 
-    @monitor.set(token)
+    @monitor.set(token, task.id)
     success = false
     begin
       run = @run_class.new(task)
@@ -181,6 +193,9 @@ class Worker
 
     rescue
       @log.info "failed id=#{task.id}: #{$!}"
+      $!.backtrace.each {|bt|
+        $log.debug "  #{bt}"
+      }
 
     ensure
       @monitor.reset(success)

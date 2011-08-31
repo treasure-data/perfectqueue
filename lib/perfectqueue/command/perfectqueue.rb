@@ -65,7 +65,7 @@ op.on('--run SCRIPT.rb', 'Run method named \'run\' defined in the script') {|s|
 op.separator("")
 
 op.on('-f', '--file PATH.yaml', 'Read configuration file') {|s|
-  conf[:file] = s
+  (conf[:files] ||= []) << s
 }
 
 op.on('-C', '--run-class', 'Class name for --run (default: ::Run)') {|s|
@@ -163,11 +163,16 @@ begin
     usage nil
   end
 
-  if conf[:file]
+  if conf[:files]
     require 'yaml'
-    yaml = YAML.load File.read(conf[:file])
+    docs = ''
+    conf[:files].each {|file|
+      docs << File.read(file)
+    }
     y = {}
-    yaml.each_pair {|k,v| y[k.to_sym] = v }
+    YAML.load_documents(docs) {|yaml|
+      yaml.each_pair {|k,v| y[k.to_sym] = v }
+    }
 
     conf = defaults.merge(y).merge(conf)
 
