@@ -270,7 +270,7 @@ when :cancel
   if canceled
     puts "Task id=#{id} is canceled."
   else
-    puts "Task id=#{id} does not exist."
+    puts "Task id=#{id} does not exist. abort"
   end
 
 when :push
@@ -278,7 +278,7 @@ when :push
   if submitted
     puts "Task id=#{id} is submitted."
   else
-    puts "Task id=#{id} already exists."
+    puts "Task id=#{id} is duplicated. abort."
   end
 
 when :exec, :run

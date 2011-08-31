@@ -27,6 +27,7 @@ class SimpleDBBackend < Backend
   end
 
   def list(&block)
+    # TODO select + order
     @domain.items.each {|item|
       id = item.name
       attrs = item.data.attributes
