@@ -118,33 +118,33 @@ Use _perfectqueue_ command to execute a command.
 
   Usage: perfectqueue [options] [-- <ARGV-for-exec-or-run>]
   
-          --push ID=DATA               Push a task to the queue
+          --push <ID> <DATA>           Push a task to the queue
           --list                       Show queued tasks
-          --cancel ID                  Cancel a queued task
-          --configure PATH.yaml        Write configuration file
+          --cancel <ID>                Cancel a queued task
+          --configure <PATH.yaml>      Write configuration file
   
-          --exec COMMAND               Execute command
-          --run SCRIPT.rb              Run method named 'run' defined in the script
+          --exec <COMMAND>             Execute command
+          --run <SCRIPT.rb>            Run method named 'run' defined in the script
   
-      -f, --file PATH.yaml             Read configuration file
+      -f, --file <PATH.yaml>           Read configuration file
       -C, --run-class                  Class name for --run (default: ::Run)
-      -t, --timeout SEC                Time for another worker to take over a task when this worker goes down (default: 600)
-      -b, --heartbeat-interval SEC     Threshold time to extend the timeout (heartbeat interval) (default: timeout * 3/4)
-      -x, --kill-timeout SEC           Threshold time to kill a task process (default: timeout * 10)
-      -X, --kill-interval SEC          Threshold time to retry killing a task process (default: 60)
-      -i, --poll-interval SEC          Polling interval (default: 1)
-      -r, --retry-wait SEC             Time to retry a task when it is failed (default: same as timeout)
-      -e, --expire SEC                 Threshold time to expire a task (default: 345600 (4days))
+      -t, --timeout <SEC>              Time for another worker to take over a task when this worker goes down (default: 600)
+      -b, --heartbeat-interval <SEC>   Threshold time to extend the timeout (heartbeat interval) (default: timeout * 3/4)
+      -x, --kill-timeout <SEC>         Threshold time to kill a task process (default: timeout * 10)
+      -X, --kill-interval <SEC>        Threshold time to retry killing a task process (default: 60)
+      -i, --poll-interval <SEC>        Polling interval (default: 1)
+      -r, --retry-wait <SEC>           Time to retry a task when it is failed (default: same as timeout)
+      -e, --expire <SEC>               Threshold time to expire a task (default: 345601 (4days))
   
-          --database URI               Use RDBMS for the backend database (e.g.: mysql://user:password@localhost/mydb)
-          --table NAME                 backend: name of the table (default: perfectqueue)
-          --simpledb DOMAIN            Use Amazon SimpleDB for the backend database (e.g.: --simpledb mydomain -k KEY_ID -s SEC_KEY)
-      -k, --key-id ID                  AWS Access Key ID
-      -s, --secret-key KEY             AWS Secret Access Key
+          --database <URI>             Use RDBMS for the backend database (e.g.: mysql://user:password@localhost/mydb)
+          --table <NAME>               backend: name of the table (default: perfectqueue)
+          --simpledb <DOMAIN>          Use Amazon SimpleDB for the backend database (e.g.: --simpledb mydomain -k KEY_ID -s SEC_KEY)
+      -k, --key-id <ID>                AWS Access Key ID
+      -s, --secret-key <KEY>           AWS Secret Access Key
   
-      -w, --worker NUM                 Number of worker threads (default: 1)
-      -d, --daemon PIDFILE             Daemonize (default: foreground)
-      -o, --log PATH                   log file path
+      -w, --worker <NUM>               Number of worker threads (default: 1)
+      -d, --daemon <PIDFILE>           Daemonize (default: foreground)
+      -o, --log <PATH>                 log file path
       -v, --verbose                    verbose mode
 
 
