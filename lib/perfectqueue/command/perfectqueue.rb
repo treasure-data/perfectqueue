@@ -31,40 +31,40 @@ op.on('-v', '--verbose', "verbose mode", TrueClass) {|b|
 }
 op.separator("")
 
-op.on('--push ID=DATA', 'Push a task to the queue') {|s|
+op.on('--push <ID> <DATA>', 'Push a task to the queue') {|s|
   type = :push
-  id, data = s.split('=',2)
+  id = s
 }
 
 op.on('--list', 'Show queued tasks', TrueClass) {|b|
   type = :list
 }
 
-op.on('--cancel ID', 'Cancel a queued task') {|s|
+op.on('--cancel <ID>', 'Cancel a queued task') {|s|
   type = :cancel
   id = s
 }
 
-op.on('--configure PATH.yaml', 'Write configuration file') {|s|
+op.on('--configure <PATH.yaml>', 'Write configuration file') {|s|
   type = :conf
   confout = s
 }
 
 op.separator("")
 
-op.on('--exec COMMAND', 'Execute command') {|s|
+op.on('--exec <COMMAND>', 'Execute command') {|s|
   type = :exec
   conf[:exec] = s
 }
 
-op.on('--run SCRIPT.rb', 'Run method named \'run\' defined in the script') {|s|
+op.on('--run <SCRIPT.rb>', 'Run method named \'run\' defined in the script') {|s|
   type = :run
   conf[:run] = s
 }
 
 op.separator("")
 
-op.on('-f', '--file PATH.yaml', 'Read configuration file') {|s|
+op.on('-f', '--file <PATH.yaml>', 'Read configuration file') {|s|
   (conf[:files] ||= []) << s
 }
 
@@ -72,67 +72,67 @@ op.on('-C', '--run-class', 'Class name for --run (default: ::Run)') {|s|
   conf[:run_class] = s
 }
 
-op.on('-t', '--timeout SEC', 'Time for another worker to take over a task when this worker goes down (default: 600)', Integer) {|i|
+op.on('-t', '--timeout <SEC>', 'Time for another worker to take over a task when this worker goes down (default: 600)', Integer) {|i|
   conf[:timeout] = i
 }
 
-op.on('-b', '--heartbeat-interval SEC', 'Threshold time to extend the timeout (heartbeat interval) (default: timeout * 3/4)', Integer) {|i|
+op.on('-b', '--heartbeat-interval <SEC>', 'Threshold time to extend the timeout (heartbeat interval) (default: timeout * 3/4)', Integer) {|i|
   conf[:heartbeat_interval] = i
 }
 
-op.on('-x', '--kill-timeout SEC', 'Threshold time to kill a task process (default: timeout * 10)', Integer) {|i|
+op.on('-x', '--kill-timeout <SEC>', 'Threshold time to kill a task process (default: timeout * 10)', Integer) {|i|
   conf[:kill_timeout] = i
 }
 
-op.on('-X', '--kill-interval SEC', 'Threshold time to retry killing a task process (default: 60)', Integer) {|i|
+op.on('-X', '--kill-interval <SEC>', 'Threshold time to retry killing a task process (default: 60)', Integer) {|i|
   conf[:kill_interval] = i
 }
 
-op.on('-i', '--poll-interval SEC', 'Polling interval (default: 1)', Integer) {|i|
+op.on('-i', '--poll-interval <SEC>', 'Polling interval (default: 1)', Integer) {|i|
   conf[:poll_interval] = i
 }
 
-op.on('-r', '--retry-wait SEC', 'Time to retry a task when it is failed (default: same as timeout)', Integer) {|i|
+op.on('-r', '--retry-wait <SEC>', 'Time to retry a task when it is failed (default: same as timeout)', Integer) {|i|
   conf[:retry_wait] = i
 }
 
-op.on('-e', '--expire SEC', 'Threshold time to expire a task (default: 345600 (4days))', Integer) {|i|
+op.on('-e', '--expire <SEC>', 'Threshold time to expire a task (default: 345601 (4days))', Integer) {|i|
   conf[:expire] = i
 }
 
 op.separator("")
 
-op.on('--database URI', 'Use RDBMS for the backend database (e.g.: mysql://user:password@localhost/mydb)') {|s|
+op.on('--database <URI>', 'Use RDBMS for the backend database (e.g.: mysql://user:password@localhost/mydb)') {|s|
   conf[:backend_database] = s
 }
 
-op.on('--table NAME', 'backend: name of the table (default: perfectqueue)') {|s|
+op.on('--table <NAME>', 'backend: name of the table (default: perfectqueue)') {|s|
   conf[:backend_table] = s
 }
 
-op.on('--simpledb DOMAIN', 'Use Amazon SimpleDB for the backend database (e.g.: --simpledb mydomain -k KEY_ID -s SEC_KEY)') {|s|
+op.on('--simpledb <DOMAIN>', 'Use Amazon SimpleDB for the backend database (e.g.: --simpledb mydomain -k KEY_ID -s SEC_KEY)') {|s|
   conf[:backend_simpledb] = s
 }
 
-op.on('-k', '--key-id ID', 'AWS Access Key ID') {|s|
+op.on('-k', '--key-id <ID>', 'AWS Access Key ID') {|s|
   conf[:backend_key_id] = s
 }
 
-op.on('-s', '--secret-key KEY', 'AWS Secret Access Key') {|s|
+op.on('-s', '--secret-key <KEY>', 'AWS Secret Access Key') {|s|
   conf[:backend_secret_key] = s
 }
 
 op.separator("")
 
-op.on('-w', '--worker NUM', 'Number of worker threads (default: 1)', Integer) {|i|
+op.on('-w', '--worker <NUM>', 'Number of worker threads (default: 1)', Integer) {|i|
   conf[:workers] = i
 }
 
-op.on('-d', '--daemon PIDFILE', 'Daemonize (default: foreground)') {|s|
+op.on('-d', '--daemon <PIDFILE>', 'Daemonize (default: foreground)') {|s|
   conf[:daemon] = s
 }
 
-op.on('-o', '--log PATH', "log file path") {|s|
+op.on('-o', '--log <PATH>', "log file path") {|s|
   conf[:log] = s
 }
 
@@ -159,8 +159,17 @@ begin
   end
   op.parse!(argv)
 
-  if argv.length != 0
-    usage nil
+  case type
+  when :push
+    if argv.length != 1
+      usage nil
+    end
+    data = argv[0]
+
+  else
+    if argv.length != 0
+      usage nil
+    end
   end
 
   if conf[:files]

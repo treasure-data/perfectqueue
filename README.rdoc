@@ -37,14 +37,14 @@ PerfectQueue uses following database schema:
   $ perfectqueue \
         --database mysql://user:password@localhost/mydb \
         --table perfectqueue \
-        --push unique-key-id='{"any":"data"}'
+        --push unique-key-id '{"any":"data"}'
 
   # SimpleDB
   $ perfectqueue \
         --simpledb your-simpledb-domain-name \
         -k AWS_KEY_ID \
         -s AWS_SECRET_KEY \
-        --push unique-key-id='{"any":"data"}'
+        --push unique-key-id '{"any":"data"}'
 
 *Using* *PerfectQueue* *library:*
 
