@@ -1,4 +1,11 @@
 
+== 2011-08-31 version 0.7.1
+
+* Fixed kill behavior
+* Supported to read multiple configuration files
+* Optimized --list subcommand
+
+
 == 2011-08-31 version 0.7.0
 
 * Backend uses logical delete instead of deleting tasks when task is finished
