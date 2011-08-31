@@ -1,4 +1,10 @@
 
+== 2011-08-31 version 0.7.0
+
+* Backend uses logical delete instead of deleting tasks when task is finished
+  or canceled. It surely raises error when duplicated job id is submitted.
+
+
 == 2011-08-25 version 0.6.1
 
 * Supports SimpleDB Backend
