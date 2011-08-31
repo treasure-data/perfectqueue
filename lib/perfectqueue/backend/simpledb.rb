@@ -27,17 +27,16 @@ class SimpleDBBackend < Backend
   end
 
   def list(&block)
-    # TODO select + order
-    @domain.items.each {|item|
-      id = item.name
-      attrs = item.data.attributes
-      salt = attrs['created_at'].first
-      if salt && !salt.empty?
-        created_at = int_decode(salt)
-        data = attrs['data'].first
-        timeout = int_decode(attrs['timeout'].first)
-        yield id, created_at, data, timeout
-      end
+    @domain.items.select('timeout', 'data', 'created_at',
+                        :where => "created_at != '' AND timeout > '#{int_encode(0)}'",
+                        :order => [:timeout, :asc],
+                        :consistent_read => @consistent_read) {|itemdata|
+      id = itemdata.name
+      attrs = itemdata.attributes
+      created_at = int_decode(attrs['created_at'].first)
+      data = attrs['data'].first
+      timeout = int_decode(attrs['timeout'].first)
+      yield id, created_at, data, timeout
     }
   end
 
