@@ -21,10 +21,10 @@ PerfectQueue uses following database schema:
 1. list: lists tasks whose timeout column is old enough.
 2. lock: updates timeout column of the first task
 3. run: executes a command
-   * if the task takes long time, updates the timeout column. this is repeated until the task is finished.
-   * if the task takes more long time, kills the process.
-4. remove: if it succeeded, removes the row from the backend database.
-5. or leave: if it failed, leave the row and expect to be retried.
+   * if the task takes long time, updates the timeout column. this is repeated until the task is finished
+   * if the task takes more long time, kills the process
+4. remove: if it succeeded, removes the row from the backend database
+5. or leave: if it failed, leave the row and expect to be retried
 
 
 == Usage
@@ -52,15 +52,15 @@ PerfectQueue uses following database schema:
   
   # RDBMS
   require 'perfectqueue/backend/rdb'
-  db = PerfectQueue::Backend::RDBBackend.new(
+  queue = PerfectQueue::Backend::RDBBackend.new(
          'mysql://user:password@localhost/mydb', table='perfectqueue')
 
   # SimpleDB
   require 'perfectqueue/backend/simpledb'
-  db = PerfectQueue::Backend::RDBBackend.new(
+  queue = PerfectQueue::Backend::SimpleDBBackend.new(
          'AWS_KEY_ID', 'AWS_SECRET_KEY', 'your-simpledb-domain-name')
   
-  db.submit('unique-key-id', '{"any":"data"}')
+  queue.submit('unique-key-id', '{"any":"data"}')
 
 
 Alternatively, you can insert a row into the backend database directly.
@@ -81,8 +81,8 @@ Alternatively, you can insert a row into the backend database directly.
 *SimpleDB:*
 
   require 'aws'  # gem install aws-sdk
-  db = AWS::SimpleDB.new
-  domain = db.domains['your-simpledb-domain-name']
+  queue = AWS::SimpleDB.new
+  domain = queue.domains['your-simpledb-domain-name']
   
   now = "%08x" % Time.now.to_i
   domain.items['unique-task-id'].attributes.replace(
@@ -98,7 +98,7 @@ Alternatively, you can insert a row into the backend database directly.
 
 *Using* *PerfectQueue* *library:*
 
-  db.cancel('unique-key-id')
+  queue.cancel('unique-key-id')
 
 
 Alternatively, you can delete a row from the backend database directly.

@@ -32,6 +32,7 @@ class RDBBackend < Backend
       sql << "  PRIMARY KEY (id)"
       sql << ");"
     end
+    # TODO index
     connect {
       @db.run sql
     }

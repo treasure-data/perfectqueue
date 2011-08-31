@@ -9,13 +9,13 @@ begin
     gemspec.summary = "Highly available distributed queue built on RDBMS or SimpleDB"
     gemspec.author = "Sadayuki Furuhashi"
     gemspec.email = "frsyuki@gmail.com"
-    #gemspec.homepage = "http://.../"
-    gemspec.has_rdoc = false
+    gemspec.homepage = "https://github.com/treasure-data/perfectqueue"
+    #gemspec.has_rdoc = false
     gemspec.require_paths = ["lib"]
     gemspec.add_dependency "sequel", "~> 3.26.0"
     gemspec.add_dependency "aws-sdk", "~> 1.1.1"
     gemspec.test_files = Dir["test/**/*.rb", "test/**/*.sh"]
-    gemspec.files = Dir["bin/**/*", "lib/**/*", "test/**/*.rb"]
+    gemspec.files = Dir["bin/**/*", "lib/**/*"]
     gemspec.executables = ['perfectqueue']
   end
   Jeweler::GemcutterTasks.new
