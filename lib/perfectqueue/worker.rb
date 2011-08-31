@@ -83,7 +83,7 @@ class MonitorThread
       begin
         @kill_proc.call
       rescue
-        @log.info "kill failed id=#{@task_id}: #{$!}"
+        @log.info "kill failed id=#{@task_id}: #{$!.class}: #{$!}"
         $!.backtrace.each {|bt|
           $log.debug "  #{bt}"
         }
@@ -192,7 +192,7 @@ class Worker
       success = true
 
     rescue
-      @log.info "failed id=#{task.id}: #{$!}"
+      @log.info "failed id=#{task.id}: #{$!.class}: #{$!}"
       $!.backtrace.each {|bt|
         $log.debug "  #{bt}"
       }

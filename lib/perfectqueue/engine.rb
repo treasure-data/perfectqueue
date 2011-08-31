@@ -77,7 +77,7 @@ class Engine
     }
 
     if err
-      log.error err.to_s
+      log.error "#{err.class}: #{err}"
       err.backtrace.each {|x|
         log.error "  #{x}"
       }
