@@ -52,12 +52,12 @@ PerfectQueue uses following database schema:
   
   # RDBMS
   require 'perfectqueue/backend/rdb'
-  queue = PerfectQueue::Backend::RDBBackend.new(
+  queue = PerfectQueue::RDBBackend.new(
          'mysql://user:password@localhost/mydb', table='perfectqueue')
 
   # SimpleDB
   require 'perfectqueue/backend/simpledb'
-  queue = PerfectQueue::Backend::SimpleDBBackend.new(
+  queue = PerfectQueue::SimpleDBBackend.new(
          'AWS_KEY_ID', 'AWS_SECRET_KEY', 'your-simpledb-domain-name')
   
   queue.submit('unique-key-id', '{"any":"data"}')
@@ -144,6 +144,7 @@ Use _perfectqueue_ command to execute a command.
   
       -w, --worker <NUM>               Number of worker threads (default: 1)
       -d, --daemon <PIDFILE>           Daemonize (default: foreground)
+          --env K=V                    Set environment variable
       -o, --log <PATH>                 log file path
       -v, --verbose                    verbose mode
 
