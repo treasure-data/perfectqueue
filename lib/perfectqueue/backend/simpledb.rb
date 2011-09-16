@@ -4,8 +4,7 @@ module PerfectQueue
 
 class SimpleDBBackend < Backend
   def initialize(key_id, secret_key, domain)
-    gem "aws-sdk"
-    require 'aws'
+    require 'aws-sdk'
     @consistent_read = false
 
     @db = AWS::SimpleDB.new(
