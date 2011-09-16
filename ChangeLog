@@ -1,4 +1,9 @@
 
+== 2011-09-16 version 0.7.2
+
+* Supported --env argument
+
+
 == 2011-08-31 version 0.7.1
 
 * Fixed kill behavior
