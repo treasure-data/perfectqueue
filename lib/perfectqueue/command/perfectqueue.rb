@@ -132,6 +132,11 @@ op.on('-d', '--daemon <PIDFILE>', 'Daemonize (default: foreground)') {|s|
   conf[:daemon] = s
 }
 
+op.on('--env K=V', 'Set environment variable') {|s|
+  k, v = s.split('=',2)
+  (conf[:env] ||= {})[k] = v
+}
+
 op.on('-o', '--log <PATH>', "log file path") {|s|
   conf[:log] = s
 }
@@ -243,7 +248,7 @@ end
 if confout
   require 'yaml'
 
-  conf.delete(:file)
+  conf.delete(:files)
   conf[:args] = ARGV
 
   y = {}
@@ -303,6 +308,10 @@ when :exec, :run
       f.write Process.pid.to_s
     }
   end
+
+  (conf[:env] || {}).each_pair {|k,v|
+    ENV[k] = v
+  }
 
   if type == :run
     load File.expand_path(conf[:run])
