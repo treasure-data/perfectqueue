@@ -272,9 +272,10 @@ case type
 when :list
   format = "%26s %26s %26s  %s"
   puts format % ["id", "created_at", "timeout", "data"]
+  time_format = "%Y-%m-%d %H:%M:%S %z"
   n = 0
   backend.list {|id,created_at,data,timeout|
-    puts format % [id, Time.at(created_at), Time.at(timeout), data]
+    puts format % [id, Time.at(created_at).strftime(time_format), Time.at(timeout).strftime(time_format), data]
     n += 1
   }
   puts "#{n} entries."
