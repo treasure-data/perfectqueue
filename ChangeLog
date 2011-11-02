@@ -1,4 +1,10 @@
 
+== 2011-11-02 version 0.7.3
+
+* Disables logger's buffering
+* Fixed time format in --list message
+
+
 == 2011-09-16 version 0.7.2
 
 * Supported --env argument
