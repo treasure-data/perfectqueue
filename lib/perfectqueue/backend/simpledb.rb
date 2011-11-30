@@ -40,7 +40,7 @@ class SimpleDBBackend < Backend
     }
   end
 
-  MAX_SELECT_ROW = 32
+  MAX_SELECT_ROW = 4
 
   def acquire(timeout, now=Time.now.to_i)
     while true
