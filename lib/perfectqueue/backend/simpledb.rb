@@ -32,6 +32,7 @@ class SimpleDBBackend < Backend
                         :consistent_read => @consistent_read) {|itemdata|
       id = itemdata.name
       attrs = itemdata.attributes
+      next unless attrs['created_at'].first
       created_at = int_decode(attrs['created_at'].first)
       data = attrs['data'].first
       timeout = int_decode(attrs['timeout'].first)
