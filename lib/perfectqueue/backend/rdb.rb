@@ -8,7 +8,7 @@ class RDBBackend < Backend
     @uri = uri
     @table = table
     @db = Sequel.connect(@uri)
-    init_db(@uri.split(':',2)[0])
+    init_db(@uri.split('//',2)[0])
   end
 
   private
@@ -53,7 +53,7 @@ class RDBBackend < Backend
     }
   end
 
-  MAX_SELECT_ROW = 32
+  MAX_SELECT_ROW = 4
 
   def acquire(timeout, now=Time.now.to_i)
     connect {

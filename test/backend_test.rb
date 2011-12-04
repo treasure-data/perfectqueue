@@ -15,8 +15,8 @@ class BackendTest < Test::Unit::TestCase
   end
 
   def open_backend
-    #PerfectQueue::SimpleDBBackend.new(ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY'], 'perfectqueue-test-1').use_consistent_read
-    PerfectQueue::RDBBackend.new(DB_URI, "perfectdb_test")
+    PerfectQueue::SimpleDBBackend.new(ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY'], 'perfectqueue-test-1').use_consistent_read
+    #PerfectQueue::RDBBackend.new(DB_URI, "perfectdb_test")
   end
 
   it 'acquire' do
