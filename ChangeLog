@@ -1,5 +1,5 @@
 
-== 2011-11-04 version 0.7.4
+== 2011-12-04 version 0.7.5
 
 * Added NullBackend
 * RDBBackend considers URLs begin with jdbc::mysql
