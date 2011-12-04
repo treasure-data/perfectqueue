@@ -1,4 +1,12 @@
 
+== 2011-11-04 version 0.7.4
+
+* Added NullBackend
+* RDBBackend considers URLs begin with jdbc::mysql
+* Reduced MAX_SELECT_ROW from 32 to 4 to reduce backend load
+* SimpleDBBackend#list ignores finished task
+
+
 == 2011-11-02 version 0.7.3
 
 * Disables logger's buffering
