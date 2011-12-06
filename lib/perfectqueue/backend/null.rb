@@ -12,7 +12,7 @@ class NullBackend < Backend
   end
 
   def finish(token, delete_timeout=3600, now=Time.now.to_i)
-    false
+    true
   end
 
   def update(token, timeout)
@@ -20,11 +20,11 @@ class NullBackend < Backend
   end
 
   def cancel(id, delete_timeout=3600, now=Time.now.to_i)
-    false
+    true
   end
 
   def submit(id, data, time=Time.now.to_i)
-    nil
+    true
   end
 end
 
