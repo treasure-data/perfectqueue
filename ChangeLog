@@ -1,4 +1,9 @@
 
+== 2011-12-06 version 0.7.6
+
+* NullBackend always returns success
+
+
 == 2011-12-04 version 0.7.5
 
 * Added NullBackend
