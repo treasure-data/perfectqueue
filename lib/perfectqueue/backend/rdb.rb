@@ -8,35 +8,38 @@ class RDBBackend < Backend
     @uri = uri
     @table = table
     @db = Sequel.connect(@uri)
-    init_db(@uri.split('//',2)[0])
+    #init_db(@uri.split('//',2)[0])
+    connect {
+      # connection test
+    }
   end
 
   private
-  def init_db(type)
-    sql = ''
-    case type
-    when /mysql/i
-      sql << "CREATE TABLE IF NOT EXISTS `#{@table}` ("
-      sql << "  id VARCHAR(256) NOT NULL,"
-      sql << "  timeout INT NOT NULL,"
-      sql << "  data BLOB NOT NULL,"
-      sql << "  created_at INT,"
-      sql << "  PRIMARY KEY (id)"
-      sql << ") ENGINE=INNODB;"
-    else
-      sql << "CREATE TABLE IF NOT EXISTS `#{@table}` ("
-      sql << "  id VARCHAR(256) NOT NULL,"
-      sql << "  timeout INT NOT NULL,"
-      sql << "  data BLOB NOT NULL,"
-      sql << "  created_at INT,"
-      sql << "  PRIMARY KEY (id)"
-      sql << ");"
-    end
-    # TODO index
-    connect {
-      @db.run sql
-    }
-  end
+  #def init_db(type)
+  #  sql = ''
+  #  case type
+  #  when /mysql/i
+  #    sql << "CREATE TABLE IF NOT EXISTS `#{@table}` ("
+  #    sql << "  id VARCHAR(256) NOT NULL,"
+  #    sql << "  timeout INT NOT NULL,"
+  #    sql << "  data BLOB NOT NULL,"
+  #    sql << "  created_at INT,"
+  #    sql << "  PRIMARY KEY (id)"
+  #    sql << ") ENGINE=INNODB;"
+  #  else
+  #    sql << "CREATE TABLE IF NOT EXISTS `#{@table}` ("
+  #    sql << "  id VARCHAR(256) NOT NULL,"
+  #    sql << "  timeout INT NOT NULL,"
+  #    sql << "  data BLOB NOT NULL,"
+  #    sql << "  created_at INT,"
+  #    sql << "  PRIMARY KEY (id)"
+  #    sql << ");"
+  #  end
+  #  # TODO index
+  #  connect {
+  #    @db.run sql
+  #  }
+  #end
 
   def connect(&block)
     begin
