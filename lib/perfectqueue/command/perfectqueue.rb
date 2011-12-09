@@ -319,7 +319,7 @@ when :exec, :run
     run_class = eval(conf[:run_class] || 'Run')
   else
     require 'shellwords'
-    cmd = ARGV.map {|a| Shellwords.escape(a) }.join(' ')
+    cmd = conf[:exec]
     Run = Class.new(PerfectQueue::ExecRunner) do
       define_method(:initialize) {|task|
         super(cmd, task)

@@ -85,7 +85,7 @@ class MonitorThread
       rescue
         @log.info "kill failed id=#{@task_id}: #{$!.class}: #{$!}"
         $!.backtrace.each {|bt|
-          $log.debug "  #{bt}"
+          @log.debug "  #{bt}"
         }
       end
     end
@@ -194,7 +194,7 @@ class Worker
     rescue
       @log.info "failed id=#{task.id}: #{$!.class}: #{$!}"
       $!.backtrace.each {|bt|
-        $log.debug "  #{bt}"
+        @log.debug "  #{bt}"
       }
 
     ensure
