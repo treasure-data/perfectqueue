@@ -1,4 +1,10 @@
 
+== 2011-12-08 version 0.7.7
+
+* RDBBackend doesn't create table automatically
+* Fix nil errors
+
+
 == 2011-12-06 version 0.7.6
 
 * NullBackend always returns success
