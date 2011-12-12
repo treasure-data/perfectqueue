@@ -24,6 +24,7 @@ class RDBBackend < Backend
   #    sql << "  timeout INT NOT NULL,"
   #    sql << "  data BLOB NOT NULL,"
   #    sql << "  created_at INT,"
+  #    sql << "  resource VARCHAR(256),"
   #    sql << "  PRIMARY KEY (id)"
   #    sql << ") ENGINE=INNODB;"
   #  else
@@ -32,6 +33,7 @@ class RDBBackend < Backend
   #    sql << "  timeout INT NOT NULL,"
   #    sql << "  data BLOB NOT NULL,"
   #    sql << "  created_at INT,"
+  #    sql << "  resource VARCHAR(256),"
   #    sql << "  PRIMARY KEY (id)"
   #    sql << ");"
   #  end
@@ -57,29 +59,35 @@ class RDBBackend < Backend
   end
 
   MAX_SELECT_ROW = 4
+  MAX_RESOURCE = 4
 
   def acquire(timeout, now=Time.now.to_i)
     connect {
-      while true
-        rows = 0
-        @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` WHERE timeout <= ? ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW};", now) {|row|
+      @db.run "LOCK TABLES `#{@table}` WRITE;"  # TODO mysql only
+      begin
+        while true
+          rows = 0
+          @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` AS T WHERE timeout <= ? AND (resource IS NULL OR (SELECT count(1) FROM `#{@table}` WHERE timeout > ? AND resource = T.resource) < #{MAX_RESOURCE}) ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW};", now) {|row|
 
-          unless row[:created_at]
-            # finished/canceled task
-            @db["DELETE FROM `#{@table}` WHERE id=?;", row[:id]].delete
+            unless row[:created_at]
+              # finished/canceled task
+              @db["DELETE FROM `#{@table}` WHERE id=?;", row[:id]].delete
 
-          else
-            n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?;", timeout, row[:id], row[:timeout]].update
-            if n > 0
-              return row[:id], Task.new(row[:id], row[:created_at], row[:data])
+            else
+              n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?;", timeout, row[:id], row[:timeout]].update
+              if n > 0
+                return row[:id], Task.new(row[:id], row[:created_at], row[:data])
+              end
             end
-          end
 
-          rows += 1
-        }
-        if rows < MAX_SELECT_ROW
-          return nil
+            rows += 1
+          }
+          if rows < MAX_SELECT_ROW
+            return nil
+          end
         end
+      ensure
+        @db.run "UNLOCK TABLES `#{@table}`;"  # TODO mysql only
       end
     }
   end
@@ -105,10 +113,10 @@ class RDBBackend < Backend
     finish(id, delete_timeout, now)
   end
 
-  def submit(id, data, time=Time.now.to_i)
+  def submit(id, data, time=Time.now.to_i, resource=nil)
     connect {
       begin
-        n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at) VALUES (?, ?, ?, ?);", id, time, data, time].insert
+        n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at, resource) VALUES (?, ?, ?, ?, ?);", id, time, data, time, resource].insert
         return true
       rescue Sequel::DatabaseError
         return nil
