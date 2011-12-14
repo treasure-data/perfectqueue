@@ -1,3 +1,5 @@
+require 'simplecov'
+SimpleCov.start
 require 'test/unit'
 $LOAD_PATH << File.dirname(__FILE__)+"/../lib"
 require 'perfectqueue'
