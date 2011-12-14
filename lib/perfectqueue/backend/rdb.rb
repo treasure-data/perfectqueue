@@ -14,35 +14,23 @@ class RDBBackend < Backend
     }
   end
 
-  private
-  #def init_db(type)
-  #  sql = ''
-  #  case type
-  #  when /mysql/i
-  #    sql << "CREATE TABLE IF NOT EXISTS `#{@table}` ("
-  #    sql << "  id VARCHAR(256) NOT NULL,"
-  #    sql << "  timeout INT NOT NULL,"
-  #    sql << "  data BLOB NOT NULL,"
-  #    sql << "  created_at INT,"
-  #    sql << "  resource VARCHAR(256),"
-  #    sql << "  PRIMARY KEY (id)"
-  #    sql << ") ENGINE=INNODB;"
-  #  else
-  #    sql << "CREATE TABLE IF NOT EXISTS `#{@table}` ("
-  #    sql << "  id VARCHAR(256) NOT NULL,"
-  #    sql << "  timeout INT NOT NULL,"
-  #    sql << "  data BLOB NOT NULL,"
-  #    sql << "  created_at INT,"
-  #    sql << "  resource VARCHAR(256),"
-  #    sql << "  PRIMARY KEY (id)"
-  #    sql << ");"
-  #  end
-  #  # TODO index
-  #  connect {
-  #    @db.run sql
-  #  }
-  #end
+  def create_tables
+    sql = ''
+    sql << "CREATE TABLE IF NOT EXISTS `#{@table}` ("
+    sql << "  id VARCHAR(256) NOT NULL,"
+    sql << "  timeout INT NOT NULL,"
+    sql << "  data BLOB NOT NULL,"
+    sql << "  created_at INT,"
+    sql << "  resource VARCHAR(256),"
+    sql << "  PRIMARY KEY (id)"
+    sql << ");"
+    # TODO index
+    connect {
+      @db.run sql
+    }
+  end
 
+  private
   def connect(&block)
     begin
       block.call
@@ -63,7 +51,7 @@ class RDBBackend < Backend
 
   def acquire(timeout, now=Time.now.to_i)
     connect {
-      @db.run "LOCK TABLES `#{@table}` WRITE;"  # TODO mysql only
+      @db.run "LOCK TABLES `#{@table}` WRITE;" rescue nil  # TODO mysql only
       begin
         while true
           rows = 0
@@ -87,7 +75,7 @@ class RDBBackend < Backend
           end
         end
       ensure
-        @db.run "UNLOCK TABLES `#{@table}`;"  # TODO mysql only
+        @db.run "UNLOCK TABLES `#{@table}`;" rescue nil  # TODO mysql only
       end
     }
   end
