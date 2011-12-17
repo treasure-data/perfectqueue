@@ -270,12 +270,12 @@ backend = backend_proc.call
 
 case type
 when :list
-  format = "%26s %26s %26s  %s"
-  puts format % ["id", "created_at", "timeout", "data"]
+  format = "%26s %26s %26s %26s  %s"
+  puts format % ["id", "created_at", "timeout", "resource", "data"]
   time_format = "%Y-%m-%d %H:%M:%S %z"
   n = 0
-  backend.list {|id,created_at,data,timeout|
-    puts format % [id, Time.at(created_at).strftime(time_format), Time.at(timeout).strftime(time_format), data]
+  backend.list {|id,created_at,data,timeout,resource|
+    puts format % [id, Time.at(created_at).strftime(time_format), Time.at(timeout).strftime(time_format), resource, data]
     n += 1
   }
   puts "#{n} entries."

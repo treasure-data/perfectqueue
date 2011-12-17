@@ -215,5 +215,33 @@ class BackendTest < Test::Unit::TestCase
     assert_equal time, task.created_at
     assert_equal 'data1', task.data
   end
+
+  it 'resource' do
+    clean_backend
+
+    db1 = open_backend
+
+    time = Time.now.to_i
+
+    5.times do |i|
+      ok = db1.submit(@key_prefix+'test'+i.to_s, 'data1', time, 'user1')
+      assert_equal true, ok
+    end
+    ok = db1.submit(@key_prefix+'test5', 'data2', time, 'user2')
+    assert_equal true, ok
+
+    4.times do
+      token, task = db1.acquire(time+TIMEOUT, time)
+      assert_not_equal nil, task
+      assert_equal "user1", task.resource
+    end
+
+    token, task = db1.acquire(time+TIMEOUT, time)
+    assert_not_equal nil, task
+    assert_equal "user2", task.resource
+
+    token, task = db1.acquire(time+TIMEOUT, time)
+    assert_equal nil, task
+  end
 end
 

@@ -26,6 +26,7 @@ class SimpleDBBackend < Backend
   end
 
   def list(&block)
+    # TODO support resource limit
     @domain.items.select('timeout', 'data', 'created_at',
                         :where => "created_at != '' AND timeout > '#{int_encode(0)}'",
                         :order => [:timeout, :asc],
@@ -36,7 +37,7 @@ class SimpleDBBackend < Backend
       created_at = int_decode(attrs['created_at'].first)
       data = attrs['data'].first
       timeout = int_decode(attrs['timeout'].first)
-      yield id, created_at, data, timeout
+      yield id, created_at, data, timeout, nil
     }
   end
 
@@ -44,6 +45,7 @@ class SimpleDBBackend < Backend
 
   def acquire(timeout, now=Time.now.to_i)
     while true
+      # TODO support resource limit
       rows = 0
       @domain.items.select('timeout', 'data', 'created_at',
                           :where => "timeout <= '#{int_encode(now)}'",
@@ -66,7 +68,7 @@ class SimpleDBBackend < Backend
 
             data = attrs['data'].first
 
-            return [id,salt], Task.new(id, created_at, data)
+            return [id,salt], Task.new(id, created_at, data, nil)
           end
 
         rescue AWS::SimpleDB::Errors::ConditionalCheckFailed, AWS::SimpleDB::Errors::AttributeDoesNotExist
@@ -111,7 +113,8 @@ class SimpleDBBackend < Backend
     finish(token, delete_timeout, now)
   end
 
-  def submit(id, data, time=Time.now.to_i)
+  def submit(id, data, time=Time.now.to_i, resource=nil)
+    # TODO support resource limit
     begin
       @domain.items[id].attributes.replace('timeout'=>int_encode(time), 'created_at'=>int_encode(time), 'data'=>data,
           :unless=>'timeout')

@@ -3,13 +3,14 @@ module PerfectQueue
 
 
 class Task
-  def initialize(id, created_at, data)
+  def initialize(id, created_at, data, resource=nil)
     @id = id
     @created_at = created_at
     @data = data
+    @resource = resource
   end
 
-  attr_reader :id, :created_at, :data
+  attr_reader :id, :created_at, :data, :resource
 end
 
 
@@ -39,7 +40,7 @@ class Backend
   end
 
   # => true (success) or nil (already exists)
-  def submit(id, data, time=Time.now.to_i)
+  def submit(id, data, time=Time.now.to_i, resource=nil)
   end
 
   def close

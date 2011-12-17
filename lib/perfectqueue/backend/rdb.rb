@@ -41,8 +41,8 @@ class RDBBackend < Backend
 
   public
   def list(&block)
-    @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` WHERE created_at IS NOT NULL ORDER BY timeout ASC;") {|row|
-      yield row[:id], row[:created_at], row[:data], row[:timeout]
+    @db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` WHERE created_at IS NOT NULL ORDER BY timeout ASC;") {|row|
+      yield row[:id], row[:created_at], row[:data], row[:timeout], row[:resource]
     }
   end
 
@@ -55,7 +55,7 @@ class RDBBackend < Backend
       begin
         while true
           rows = 0
-          @db.fetch("SELECT id, timeout, data, created_at FROM `#{@table}` AS T WHERE timeout <= ? AND (resource IS NULL OR (SELECT count(1) FROM `#{@table}` WHERE timeout > ? AND resource = T.resource) < #{MAX_RESOURCE}) ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW};", now) {|row|
+          @db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` AS T WHERE timeout <= ? AND (resource IS NULL OR (SELECT count(1) FROM `#{@table}` WHERE timeout > ? AND resource = T.resource) < #{MAX_RESOURCE}) ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW};", now, now) {|row|
 
             unless row[:created_at]
               # finished/canceled task
@@ -64,7 +64,7 @@ class RDBBackend < Backend
             else
               n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?;", timeout, row[:id], row[:timeout]].update
               if n > 0
-                return row[:id], Task.new(row[:id], row[:created_at], row[:data])
+                return row[:id], Task.new(row[:id], row[:created_at], row[:data], row[:resource])
               end
             end
 

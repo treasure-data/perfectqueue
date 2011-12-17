@@ -23,7 +23,7 @@ class NullBackend < Backend
     true
   end
 
-  def submit(id, data, time=Time.now.to_i)
+  def submit(id, data, time=Time.now.to_i, resource=nil)
     true
   end
 end
