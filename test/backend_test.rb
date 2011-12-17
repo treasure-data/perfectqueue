@@ -216,7 +216,7 @@ class BackendTest < Test::Unit::TestCase
     assert_equal 'data1', task.data
   end
 
-  it 'resource' do
+  it 'resource limit' do
     clean_backend
 
     db1 = open_backend
@@ -230,10 +230,12 @@ class BackendTest < Test::Unit::TestCase
     ok = db1.submit(@key_prefix+'test5', 'data2', time, 'user2')
     assert_equal true, ok
 
+    token_1 = nil
+    task_1 = nil
     4.times do
-      token, task = db1.acquire(time+TIMEOUT, time)
-      assert_not_equal nil, task
-      assert_equal "user1", task.resource
+      token_1, task_1 = db1.acquire(time+TIMEOUT, time)
+      assert_not_equal nil, task_1
+      assert_equal "user1", task_1.resource
     end
 
     token, task = db1.acquire(time+TIMEOUT, time)
@@ -242,6 +244,13 @@ class BackendTest < Test::Unit::TestCase
 
     token, task = db1.acquire(time+TIMEOUT, time)
     assert_equal nil, task
+
+    ok = db1.finish(token_1)
+    assert_equal true, ok
+
+    token, task = db1.acquire(time+TIMEOUT, time)
+    assert_not_equal nil, task
+    assert_equal "user1", task.resource
   end
 end
 

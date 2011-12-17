@@ -55,7 +55,7 @@ class RDBBackend < Backend
       begin
         while true
           rows = 0
-          @db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` AS T WHERE timeout <= ? AND (resource IS NULL OR (SELECT count(1) FROM `#{@table}` WHERE timeout > ? AND resource = T.resource) < #{MAX_RESOURCE}) ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW};", now, now) {|row|
+          @db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` AS T WHERE timeout <= ? AND (resource IS NULL OR (SELECT count(1) FROM `#{@table}` WHERE timeout > ? AND created_at IS NOT NULL AND resource = T.resource) < #{MAX_RESOURCE}) ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW};", now, now) {|row|
 
             unless row[:created_at]
               # finished/canceled task
@@ -82,7 +82,7 @@ class RDBBackend < Backend
 
   def finish(id, delete_timeout=3600, now=Time.now.to_i)
     connect {
-      n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL WHERE id=? AND created_at IS NOT NULL;", now+delete_timeout, id].update
+      n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL;", now+delete_timeout, id].update
       return n > 0
     }
   end
