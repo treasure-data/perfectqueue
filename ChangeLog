@@ -1,4 +1,9 @@
 
+== 2011-12-17 version 0.7.8
+
+* Supports resource limit
+
+
 == 2011-12-08 version 0.7.7
 
 * RDBBackend doesn't create table automatically
