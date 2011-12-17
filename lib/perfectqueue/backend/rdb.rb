@@ -47,11 +47,11 @@ class RDBBackend < Backend
   end
 
   MAX_SELECT_ROW = 4
-  MAX_RESOURCE = 4
+  MAX_RESOURCE = (ENV['PQ_MAX_RESOURCE'] || 4).to_i
 
   def acquire(timeout, now=Time.now.to_i)
     connect {
-      @db.run "LOCK TABLES `#{@table}` WRITE;" rescue nil  # TODO mysql only
+      @db.run "LOCK TABLES `#{@table}`, T WRITE;" rescue nil  # TODO mysql only
       begin
         while true
           rows = 0
@@ -75,7 +75,7 @@ class RDBBackend < Backend
           end
         end
       ensure
-        @db.run "UNLOCK TABLES `#{@table}`;" rescue nil  # TODO mysql only
+        @db.run "UNLOCK TABLES T, `#{@table}`;" rescue nil  # TODO mysql only
       end
     }
   end
