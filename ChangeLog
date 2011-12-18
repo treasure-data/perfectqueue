@@ -1,4 +1,9 @@
 
+== 2011-12-18 version 0.7.12
+
+* Added -D, --delete-wait option
+
+
 == 2011-12-18 version 0.7.11
 
 * Optimized a SQL of RDBBackend
