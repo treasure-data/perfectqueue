@@ -13,6 +13,7 @@ class MonitorThread
     @kill_timeout = conf[:kill_timeout] || @timeout*10
     @kill_interval = conf[:kill_interval] || 60
     @retry_wait = conf[:retry_wait] || nil
+    @delete_wait = conf[:delete_wait] || 3600
 
     @token = nil
     @heartbeat_time = nil
@@ -121,7 +122,7 @@ class MonitorThread
   def reset(success)
     @mutex.synchronize {
       if success
-        @backend.finish(@token)
+        @backend.finish(@token, @delete_wait)
       elsif @retry_wait && !@canceled
         begin
           @backend.update(@token, Time.now.to_i+@retry_wait)

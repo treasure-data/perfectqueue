@@ -96,6 +96,10 @@ op.on('-r', '--retry-wait <SEC>', 'Time to retry a task when it is failed (defau
   conf[:retry_wait] = i
 }
 
+op.on('-D', '--delete-wait <SEC>', 'Time to delete a finished task when it succeeded (default: 3600)', Integer) {|i|
+  conf[:delete_wait] = i
+}
+
 op.on('-e', '--expire <SEC>', 'Threshold time to expire a task (default: 345601 (4days))', Integer) {|i|
   conf[:expire] = i
 }
