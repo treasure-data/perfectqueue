@@ -19,7 +19,8 @@ LEFT JOIN (
   SELECT resource AS res,
          CASE WHEN resource IS NULL THEN 0 ELSE COUNT(1) END AS running
   FROM `#{@table}`
-  WHERE timeout > ? AND created_at IS NOT NULL GROUP BY resource
+  WHERE timeout > ? AND created_at IS NOT NULL
+  GROUP BY resource
 ) AS T ON resource = res
 WHERE timeout <= ? AND (running IS NULL OR running < #{MAX_RESOURCE})
 ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW}

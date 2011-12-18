@@ -1,4 +1,9 @@
 
+== 2011-12-18 version 0.7.11
+
+* Optimized a SQL of RDBBackend
+
+
 == 2011-12-17 version 0.7.8, 0.7.9, 0.7.10
 
 * Supports resource limit
