@@ -23,7 +23,7 @@ LEFT JOIN (
   GROUP BY resource
 ) AS T ON resource = res
 WHERE timeout <= ? AND (running IS NULL OR running < #{MAX_RESOURCE})
-ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW}
+LIMIT #{MAX_SELECT_ROW}
 SQL
   end
 
