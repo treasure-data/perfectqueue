@@ -12,6 +12,18 @@ class RDBBackend < Backend
     connect {
       # connection test
     }
+    @sql = <<SQL
+SELECT id, timeout, data, created_at, resource
+FROM `#{@table}`
+LEFT JOIN (
+  SELECT resource AS res,
+         CASE WHEN resource IS NULL THEN 0 ELSE COUNT(1) END AS running
+  FROM `#{@table}`
+  WHERE timeout > ? AND created_at IS NOT NULL GROUP BY resource
+) AS T ON resource = res
+WHERE timeout <= ? AND (running IS NULL OR running < #{MAX_RESOURCE})
+ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW}
+SQL
   end
 
   def create_tables
@@ -55,7 +67,7 @@ class RDBBackend < Backend
       begin
         while true
           rows = 0
-          @db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` AS T WHERE timeout <= ? AND (resource IS NULL OR (SELECT count(1) FROM `#{@table}` WHERE timeout > ? AND created_at IS NOT NULL AND resource = T.resource) < #{MAX_RESOURCE}) ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW};", now, now) {|row|
+          @db.fetch(@sql, now, now) {|row|
 
             unless row[:created_at]
               # finished/canceled task
