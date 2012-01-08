@@ -64,7 +64,8 @@ SQL
 
   def acquire(timeout, now=Time.now.to_i)
     connect {
-      @db.run "LOCK TABLES `#{@table}`, T WRITE;" rescue nil  # TODO mysql only
+      @db.run "SET autocommit=0;" rescue nil  # TODO mysql only
+      @db.run "LOCK TABLES `#{@table}` WRITE, T WRITE;" rescue nil  # TODO mysql only
       begin
         while true
           rows = 0
