@@ -1,7 +1,13 @@
 
+== 2012-01-08 version 0.7.14
+
+* Re-enabled order of the tasks
+* RDBBackend: Fixed table locking routine
+
+
 == 2011-12-18 version 0.7.13
 
-* Don't guarantee of the tasks to improve performance
+* Don't guarantee the order of the tasks to improve performance
 
 
 == 2011-12-18 version 0.7.12
