@@ -171,13 +171,13 @@ class BackendTest < Test::Unit::TestCase
     assert_not_equal nil, task
 
     assert_nothing_raised do
-      db1.update(token, time+TIMEOUT)
+      db1.update(token, time+TIMEOUT+1)
     end
 
     token_, task_ = db2.acquire(time+TIMEOUT, time)
     assert_equal nil, token_
 
-    token, task = db2.acquire(time+TIMEOUT*2, time+TIMEOUT)
+    token, task = db2.acquire(time+TIMEOUT*2, time+TIMEOUT+1)
     assert_not_equal nil, task
     assert_equal @key_prefix+'test1', task.id
     assert_equal time, task.created_at
@@ -199,7 +199,7 @@ class BackendTest < Test::Unit::TestCase
     assert_not_equal nil, task
 
     assert_nothing_raised do
-      db1.update(token, time+TIMEOUT)
+      db1.update(token, time+TIMEOUT+1)
     end
 
     token_, task_ = db2.acquire(time+TIMEOUT, time)
@@ -224,7 +224,7 @@ class BackendTest < Test::Unit::TestCase
     time = Time.now.to_i
 
     5.times do |i|
-      ok = db1.submit(@key_prefix+'test'+i.to_s, 'data1', time, 'user1')
+      ok = db1.submit(@key_prefix+'test'+i.to_s, 'data1', time-i, 'user1')
       assert_equal true, ok
     end
     ok = db1.submit(@key_prefix+'test5', 'data2', time, 'user2')
