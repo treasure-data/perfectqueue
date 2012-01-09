@@ -7,7 +7,9 @@ class RDBBackend < Backend
     require 'sequel'
     @uri = uri
     @table = table
-    @db = Sequel.connect(@uri)
+    @db = Sequel.connect(@uri, :max_connections=>1)
+    @last_time = Time.now.to_i
+    @mutex = Mutex.new
     #init_db(@uri.split('//',2)[0])
     connect {
       # connection test
@@ -16,12 +18,11 @@ class RDBBackend < Backend
 SELECT id, timeout, data, created_at, resource
 FROM `#{@table}`
 LEFT JOIN (
-  SELECT resource AS res,
-         CASE WHEN resource IS NULL THEN 0 ELSE COUNT(1) END AS running
-  FROM `#{@table}`
-  WHERE timeout > ? AND created_at IS NOT NULL
+  SELECT resource AS res, COUNT(1) AS running
+  FROM `#{@table}` AS T
+  WHERE timeout > ? AND created_at IS NOT NULL AND resource IS NOT NULL
   GROUP BY resource
-) AS T ON resource = res
+) AS R ON resource = res
 WHERE timeout <= ? AND (running IS NULL OR running < #{MAX_RESOURCE})
 ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW}
 SQL
@@ -45,10 +46,13 @@ SQL
 
   private
   def connect(&block)
-    begin
+    now = Time.now.to_i
+    @mutex.synchronize do
+      if now - @last_time > KEEPALIVE
+        @db.disconnect
+      end
+      @last_time = now
       block.call
-    ensure
-      @db.disconnect
     end
   end
 
@@ -61,22 +65,23 @@ SQL
 
   MAX_SELECT_ROW = 4
   MAX_RESOURCE = (ENV['PQ_MAX_RESOURCE'] || 4).to_i
+  KEEPALIVE = 10
 
   def acquire(timeout, now=Time.now.to_i)
     connect {
-      @db.run "SET autocommit=0;" rescue nil  # TODO mysql only
-      @db.run "LOCK TABLES `#{@table}` WRITE, T WRITE;" rescue nil  # TODO mysql only
-      begin
+      table_lock do
         while true
           rows = 0
           @db.fetch(@sql, now, now) {|row|
-
             unless row[:created_at]
+              puts "deleted:#{row[:id]}"
               # finished/canceled task
               @db["DELETE FROM `#{@table}` WHERE id=?;", row[:id]].delete
 
             else
-              n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?;", timeout, row[:id], row[:timeout]].update
+              ## optimistic lock is not needed because the table is locked
+              # n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?", timeout, row[:id], row[:timeout]].update
+              n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=?", timeout, row[:id]].update
               if n > 0
                 return row[:id], Task.new(row[:id], row[:created_at], row[:data], row[:resource])
               end
@@ -84,14 +89,30 @@ SQL
 
             rows += 1
           }
-          if rows < MAX_SELECT_ROW
-            return nil
-          end
+          break nil if rows < MAX_SELECT_ROW
         end
-      ensure
-        @db.run "UNLOCK TABLES T, `#{@table}`;" rescue nil  # TODO mysql only
       end
     }
+  end
+
+  def table_lock(&block)
+    case @uri.split('//',2)[0]
+    when /sqlite/
+      @db.transaction(&block)
+    when /mysql/
+      # FIXME ensure unlock/autocommit
+      @db.run "SET autocommit=0;"
+      @db.run "LOCK TABLE `#{@table}` WRITE, `#{@table}` AS T WRITE;"
+      begin
+        r = block.call
+      ensure
+        @db.run "UNLOCK TABLE;"
+        @db.run "SET autocommit=1;"
+      end
+      r
+    else
+      @db.transaction(&block)  # TODO
+    end
   end
 
   def finish(id, delete_timeout=3600, now=Time.now.to_i)
