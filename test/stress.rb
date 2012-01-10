@@ -25,13 +25,13 @@ class StressTest
     def run
       @num.times {|i|
         @db.submit("#{@key_prefix}-#{i}", "data", @now)
-        token, task = @db.acquire(@now+1)
+        token, task = @db.acquire(@now+60)
         if token == nil
           puts "acquire failed"
           next
         end
-        @db.update(token, @now+2)
-        @db.finish(token)
+        @db.update(token, @now+70)
+        @db.finish(token, @now+80)
       }
     end
   end
@@ -51,6 +51,7 @@ class StressTest
     elapsed = finish - now
     puts "#{elapsed} sec."
     puts "#{@npt * @thread / elapsed} req/sec."
+    puts "#{elapsed / (@npt * @thread)} sec/req."
   end
 end
 
