@@ -25,7 +25,7 @@ class StressTest
       @num.times {|i|
         now = Time.now.to_i
         @db.submit("#{@key_prefix}-#{i}", "data", now)
-        token, task = @db.acquire(now+60)
+        token, task = @db.acquire(now+60, now)
         if token == nil
           puts "acquire failed"
           next

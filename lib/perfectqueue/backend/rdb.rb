@@ -8,7 +8,7 @@ class RDBBackend < Backend
     @uri = uri
     @table = table
     @db = Sequel.connect(@uri, :max_connections=>1)
-    @last_time = Time.now.to_i
+    #@last_time = Time.now.to_i
     @mutex = Mutex.new
     #init_db(@uri.split('//',2)[0])
     connect {
@@ -51,12 +51,12 @@ SQL
 
   private
   def connect(&block)
-    now = Time.now.to_i
+    #now = Time.now.to_i
     @mutex.synchronize do
-      if now - @last_time > KEEPALIVE
-        @db.disconnect
-      end
-      @last_time = now
+      #if now - @last_time > KEEPALIVE
+      #  @db.disconnect
+      #end
+      #@last_time = now
       retry_count = 0
       begin
         block.call
@@ -74,6 +74,8 @@ SQL
           end
         end
         raise
+      ensure
+        @db.disconnect
       end
     end
   end
@@ -87,7 +89,7 @@ SQL
 
   MAX_SELECT_ROW = 8
   MAX_RESOURCE = (ENV['PQ_MAX_RESOURCE'] || 4).to_i
-  KEEPALIVE = 10
+  #KEEPALIVE = 10
   MAX_RETRY = 10
 
   def acquire(timeout, now=Time.now.to_i)
