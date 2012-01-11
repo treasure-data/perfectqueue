@@ -68,9 +68,10 @@ SQL
           if retry_count < MAX_RETRY
             STDERR.puts err + "\nretrying"
             retry
+          else
+            STDERR.puts err + "\nabort"
           end
         end
-        STDERR.puts err + "\nabort"
         raise
       end
     end
@@ -90,8 +91,8 @@ SQL
 
   def acquire(timeout, now=Time.now.to_i)
     connect {
-      while true
-        @db.transaction do
+      @db.transaction do
+        while true
           rows = 0
           @db.fetch(@sql, now, now) {|row|
             unless row[:created_at]
