@@ -91,9 +91,9 @@ SQL
 
   def acquire(timeout, now=Time.now.to_i)
     connect {
-      @db.transaction do
-        while true
-          rows = 0
+      while true
+        rows = 0
+        @db.transaction do
           @db.fetch(@sql, now, now) {|row|
             unless row[:created_at]
               # finished/canceled task
@@ -110,8 +110,8 @@ SQL
 
             rows += 1
           }
-          break nil if rows < MAX_SELECT_ROW
         end
+        break nil if rows < MAX_SELECT_ROW
       end
     }
   end
