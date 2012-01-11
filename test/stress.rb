@@ -14,24 +14,24 @@ class StressTest
   end
 
   class ThreadMain < Thread
-    def initialize(key_prefix, db, num, now)
+    def initialize(key_prefix, db, num)
       @key_prefix = key_prefix
       @db = db
       @num = num
-      @now = now
       super(&method(:run))
     end
 
     def run
       @num.times {|i|
-        @db.submit("#{@key_prefix}-#{i}", "data", @now)
-        token, task = @db.acquire(@now+60)
+        now = Time.now.to_i
+        @db.submit("#{@key_prefix}-#{i}", "data", now)
+        token, task = @db.acquire(now+60)
         if token == nil
           puts "acquire failed"
           next
         end
-        @db.update(token, @now+70)
-        @db.finish(token, @now+80)
+        @db.update(token, now+70)
+        @db.finish(token, now+80)
       }
     end
   end
@@ -41,7 +41,7 @@ class StressTest
     key_prefix = "stress-#{'%08x'%rand(2**32)}"
     now = Time.now
     @thread.times {|i|
-      threads << ThreadMain.new("#{key_prefix}-#{i}", @db_proc.call, @npt, now.to_i)
+      threads << ThreadMain.new("#{key_prefix}-#{i}", @db_proc.call, @npt)
     }
     threads.each {|t|
       t.join
