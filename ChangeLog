@@ -1,4 +1,10 @@
 
+== 2012-01-10 version 0.7.16
+
+* RDBBackend: sleep 0.5 before retrying failed transaction by deadlock
+* RDBBackend: release the row lock acquired by SELECT .. FOR UPDATE before retrying it
+
+
 == 2012-01-10 version 0.7.15
 
 * RDBBackend: Fixed locking routines to work with possibility of deadlocks
