@@ -62,14 +62,15 @@ SQL
         block.call
       rescue
         # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
-        err = ([$!] + $!.backtrace.map {|bt| "  #{bt}" }).join("\n")
         if $!.to_s.include?('try restarting transaction')
+          err = ([$!] + $!.backtrace.map {|bt| "  #{bt}" }).join("\n")
           retry_count += 1
           if retry_count < MAX_RETRY
-            STDERR.puts err + "\nretrying"
+            STDERR.puts err + "\n  retrying."
+            sleep 0.5
             retry
           else
-            STDERR.puts err + "\nabort"
+            STDERR.puts err + "\n  abort."
           end
         end
         raise
