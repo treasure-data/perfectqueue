@@ -1,4 +1,9 @@
 
+== 2012-01-10 version 0.7.17
+
+* RDBBackend: disabled connection keepalive
+
+
 == 2012-01-10 version 0.7.16
 
 * RDBBackend: sleep 0.5 before retrying failed transaction by deadlock
