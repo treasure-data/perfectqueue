@@ -26,6 +26,11 @@ LEFT JOIN (
 WHERE timeout <= ? AND (running IS NULL OR running < #{MAX_RESOURCE})
 ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW}
 SQL
+    # sqlite doesn't support SELECT ... FOR UPDATE but
+    # sqlite doesn't need it because the db is not shared
+    unless @uri.split('//',2)[0].to_s.include?('sqlite')
+      @sql << 'FOR UPDATE'
+    end
   end
 
   def create_tables
@@ -52,7 +57,22 @@ SQL
         @db.disconnect
       end
       @last_time = now
-      block.call
+      retry_count = 0
+      begin
+        block.call
+      rescue
+        # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
+        err = ([$!] + $!.backtrace.map {|bt| "  #{bt}" }).join("\n")
+        if $!.to_s.include?('try restarting transaction')
+          retry_count += 1
+          if retry_count < MAX_RETRY
+            STDERR.puts err + "\nretrying"
+            retry
+          end
+        end
+        STDERR.puts err + "\nabort"
+        raise
+      end
     end
   end
 
@@ -63,24 +83,24 @@ SQL
     }
   end
 
-  MAX_SELECT_ROW = 4
+  MAX_SELECT_ROW = 8
   MAX_RESOURCE = (ENV['PQ_MAX_RESOURCE'] || 4).to_i
   KEEPALIVE = 10
+  MAX_RETRY = 10
 
   def acquire(timeout, now=Time.now.to_i)
     connect {
-      table_lock do
-        while true
+      while true
+        @db.transaction do
           rows = 0
           @db.fetch(@sql, now, now) {|row|
             unless row[:created_at]
-              puts "deleted:#{row[:id]}"
               # finished/canceled task
               @db["DELETE FROM `#{@table}` WHERE id=?;", row[:id]].delete
 
             else
-              ## optimistic lock is not needed because the table is locked
-              # n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?", timeout, row[:id], row[:timeout]].update
+              ## optimistic lock is not needed because the row is locked for update
+              #n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?", timeout, row[:id], row[:timeout]].update
               n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=?", timeout, row[:id]].update
               if n > 0
                 return row[:id], Task.new(row[:id], row[:created_at], row[:data], row[:resource])
@@ -93,26 +113,6 @@ SQL
         end
       end
     }
-  end
-
-  def table_lock(&block)
-    case @uri.split('//',2)[0]
-    when /sqlite/
-      @db.transaction(&block)
-    when /mysql/
-      # FIXME ensure unlock/autocommit
-      @db.run "SET autocommit=0;"
-      @db.run "LOCK TABLE `#{@table}` WRITE, `#{@table}` AS T WRITE;"
-      begin
-        r = block.call
-      ensure
-        @db.run "UNLOCK TABLE;"
-        @db.run "SET autocommit=1;"
-      end
-      r
-    else
-      @db.transaction(&block)  # TODO
-    end
   end
 
   def finish(id, delete_timeout=3600, now=Time.now.to_i)
