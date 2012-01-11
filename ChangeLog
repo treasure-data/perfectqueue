@@ -1,4 +1,9 @@
 
+== 2012-01-10 version 0.7.15
+
+* RDBBackend: Fixed locking routines to work with possibility of deadlocks
+
+
 == 2012-01-08 version 0.7.14
 
 * Re-enabled order of the tasks
