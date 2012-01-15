@@ -43,13 +43,14 @@ class Engine
       begin
 
         until finished?
-          token, task = @backend.acquire(Time.now.to_i+@timeout)
+          now = Time.now.to_i
+          token, task = @backend.acquire(now+@timeout)
 
           unless token
             sleep @poll_interval
             next
           end
-          if task.created_at > Time.now.to_i+@expire
+          if task.created_at < now-@expire
             @log.warn "canceling expired task id=#{task.id}"
             @backend.cancel(token)
             next
