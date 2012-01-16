@@ -1,4 +1,9 @@
 
+== 2012-01-15 version 0.7.18
+
+* Fixed expiration logic
+
+
 == 2012-01-10 version 0.7.17
 
 * RDBBackend: disabled connection keepalive
