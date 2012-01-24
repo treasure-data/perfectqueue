@@ -1,4 +1,9 @@
 
+== 2012-01-26 version 0.7.19
+
+* Don't stop MonitorThread while shutting down
+
+
 == 2012-01-15 version 0.7.18
 
 * Fixed expiration logic
