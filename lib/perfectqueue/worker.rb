@@ -7,6 +7,7 @@ class MonitorThread
     @engine = engine
     @log = @engine.log
     @backend = engine.backend
+    @finished = false
 
     @timeout = conf[:timeout] || 600
     @heartbeat_interval = conf[:heartbeat_interval] || @timeout*3/4
@@ -30,10 +31,10 @@ class MonitorThread
   end
 
   def run
-    until @engine.finished?
+    unless @finished
       @mutex.synchronize {
         while true
-          return if @engine.finished?
+          return if @finished
           break if @token
           @cond.wait(@mutex)
         end
@@ -48,7 +49,7 @@ class MonitorThread
     while true
       sleep 1
       @mutex.synchronize {
-        return if @engine.finished?
+        return if @finished
         return unless @token
         now = Time.now.to_i
         try_extend(now)
@@ -94,6 +95,7 @@ class MonitorThread
 
   def stop
     @mutex.synchronize {
+      @finished = true
       @cond.broadcast
     }
   end
@@ -152,10 +154,10 @@ class Worker
 
   def start
     @thread = Thread.new(&method(:run))
-    @monitor.start
   end
 
   def run
+    @monitor.start
     while true
       @mutex.synchronize {
         while true
@@ -173,6 +175,8 @@ class Worker
     end
   rescue
     @engine.stop($!)
+  ensure
+    @monitor.stop
   end
 
   def process(token, task)
@@ -205,7 +209,6 @@ class Worker
 
   def stop
     submit(nil, nil)
-    @monitor.stop
   end
 
   def shutdown
