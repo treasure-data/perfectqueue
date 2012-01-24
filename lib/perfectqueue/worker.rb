@@ -26,7 +26,6 @@ class MonitorThread
   end
 
   def start
-    @log.debug "running worker."
     @thread = Thread.new(&method(:run))
   end
 
@@ -153,30 +152,33 @@ class Worker
   end
 
   def start
+    @log.debug "running worker."
     @thread = Thread.new(&method(:run))
   end
 
   def run
     @monitor.start
-    while true
-      @mutex.synchronize {
-        while true
-          return if @engine.finished?
-          break if @token
-          @cond.wait(@mutex)
+    begin
+      while true
+        @mutex.synchronize {
+          while true
+            return if @engine.finished?
+            break if @token
+            @cond.wait(@mutex)
+          end
+        }
+        begin
+          process(@token, @task)
+        ensure
+          @token = nil
+          @engine.release_worker(self)
         end
-      }
-      begin
-        process(@token, @task)
-      ensure
-        @token = nil
-        @engine.release_worker(self)
       end
+    ensure
+      @monitor.stop
     end
   rescue
     @engine.stop($!)
-  ensure
-    @monitor.stop
   end
 
   def process(token, task)
