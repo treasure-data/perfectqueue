@@ -30,7 +30,7 @@ class MonitorThread
   end
 
   def run
-    unless @finished
+    until @finished
       @mutex.synchronize {
         while true
           return if @finished
