@@ -1,0 +1,6 @@
+.bundle
+Gemfile.lock
+vendor/*
+coverage/*
+pkg/*
+spec/test.db

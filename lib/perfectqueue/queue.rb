@@ -17,32 +17,37 @@
 #
 
 module PerfectQueue
-  module Backend
-    def self.new_backend(client, config)
-      case config[:type]
-      when nil
-        raise ConfigError, "'type' option is not set"
-      when 'rdb_compat'
-        require_backend('rdb_compat')
-        RDBCompatBackend.new(client, config)
+  class Queue
+    include Model
+
+    def initialize(client)
+      super(client)
+    end
+
+    def [](task_id)
+      Task.new(@client, task_id)
+    end
+
+    def each(options={}, &block)
+      @client.list(options, &block)
+    end
+
+    include Enumerable
+
+    def poll(options={})
+      options = options.merge({:max_acquire=>1})
+      if acquired = poll_multi(options)
+        return acquired[0]
       end
+      return nil
     end
 
-    def self.require_backend(fname)
-      require File.expand_path("backend/#{fname}", File.dirname(__FILE__))
-    end
-  end
-
-  module BackendHelper
-    def initialize(client, config)
-      @client = client
-      @config = config
+    def poll_multi(options={})
+      @client.acquire(options)
     end
 
-    attr_reader :client
-
-    def close
-      # do nothing by default
+    def submit(task_id, type, data, options={})
+      @client.submit(task_id, type, data, options)
     end
   end
 end

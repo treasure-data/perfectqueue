@@ -17,33 +17,21 @@
 #
 
 module PerfectQueue
-  module Backend
-    def self.new_backend(client, config)
-      case config[:type]
-      when nil
-        raise ConfigError, "'type' option is not set"
-      when 'rdb_compat'
-        require_backend('rdb_compat')
-        RDBCompatBackend.new(client, config)
-      end
-    end
-
-    def self.require_backend(fname)
-      require File.expand_path("backend/#{fname}", File.dirname(__FILE__))
-    end
-  end
-
-  module BackendHelper
-    def initialize(client, config)
+  module Model
+    def initialize(client)
       @client = client
-      @config = config
     end
 
     attr_reader :client
 
-    def close
-      # do nothing by default
+    def config
+      @client.config
     end
+
+    ## TODO
+    #def inspect
+    #  "<#{self.class}>"
+    #end
   end
 end
 

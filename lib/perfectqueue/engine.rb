@@ -1,152 +1,111 @@
+#
+# PerfectQueue
+#
+# Copyright (C) 2012 FURUHASHI Sadayuki
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
 
 module PerfectQueue
 
+  class Engine
+    def initialize(runner, config)
+      @runner = runner
+      configure(config)
 
-class Engine
-  def initialize(backend, log, conf)
-    @backend = backend
-    @log = log
+      @before_fork = nil
+      @after_fork = nil
+      @before_child_end = nil
+      @after_child_end = nil
 
-    @timeout = conf[:timeout]
-    @poll_interval = conf[:poll_interval] || 1
-    @expire = conf[:expire] || 345600
+      @running_flag = BlockingFlag.new
+      @finish_flag = BlockingFlag.new
 
-    num_workers = conf[:workers] || 1
-    @workers = (1..num_workers).map {
-      Worker.new(self, conf)
-    }
-    @available_workers = @workers.dup
-
-    @finished = false
-    @error = nil
-
-    @mutex = Mutex.new
-    @cond = ConditionVariable.new
-  end
-
-  attr_reader :backend
-  attr_reader :log
-  attr_reader :error
-
-  def finished?
-    @finished
-  end
-
-  def run
-    @workers.each {|w|
-      w.start
-    }
-
-    until finished?
-      w = acquire_worker
-      next unless w
-      begin
-
-        until finished?
-          now = Time.now.to_i
-          token, task = @backend.acquire(now+@timeout)
-
-          unless token
-            sleep @poll_interval
-            next
-          end
-          if task.created_at < now-@expire
-            @log.warn "canceling expired task id=#{task.id}"
-            @backend.cancel(token)
-            next
-          end
-
-          @log.info "acquired task id=#{task.id}"
-          w.submit(token, task)
-          w = nil
-          break
-        end
-
-      ensure
-        release_worker(w) if w
-      end
+      @processors = []
+      restart(true, config)
     end
-  ensure
-    @finished = true
-  end
 
-  def stop(err=nil)
-    @finished = true
-    @error = error
-    @workers.each {|w|
-      w.stop
-    }
+    def restart(immediate, config)
+      return nil if @finish_flag.set?
 
-    if err
-      @log.error "#{err.class}: #{err}"
-      err.backtrace.each {|x|
-        @log.error "  #{x}"
+      # TODO connection check
+
+      @log = config[:logger] || Logger.new(STDERR)
+      # TODO log_level
+
+      num_processors = config[:processors] || 1
+
+      extra = num_processors - @processors.length
+      if extra > 0
+        extra.times do
+          @processors << Multiprocess::Processor.new(self, config)
+        end
+      elsif extra < 0
+        -extra.times do
+          c = @processors.shift
+          c.stop(immediate)
+          c.join
+        end
+        extra = 0
+      end
+
+      @processors[0..(-extra-1)].each {|c|
+        c.restart(immediate, config)
       }
+
+      @child_keepalive_interval = config[:child_keepalive_interval]
+
+      self
     end
-  end
 
-  def shutdown
-    @finished = true
-    @workers.each {|w|
-      w.shutdown
-    }
-  end
-
-  def acquire_worker
-    @mutex.synchronize {
-      while @available_workers.empty?
-        return nil if finished?
-        @cond.wait(@mutex)
-      end
-      return @available_workers.pop
-    }
-  end
-
-  def release_worker(worker)
-    @mutex.synchronize {
-      @available_workers.push worker
-      if @available_workers.size == 1
-        @cond.broadcast
-      end
-    }
-  end
-end
-
-
-class ExecRunner
-  def initialize(cmd, task)
-    @cmd = cmd
-    @task = task
-    @iobuf = ''
-    @pid = nil
-    @kill_signal = :TERM
-  end
-
-  def run
-    cmdline = "#{@cmd} #{Shellwords.escape(@task.id)}"
-    IO.popen(cmdline, "r+") {|io|
-      @pid = io.pid
-      io.write(@task.data) rescue nil
-      io.close_write
-      begin
-        while true
-          io.sysread(1024, @iobuf)
-          print @iobuf
+    def run
+      @running_flag.set_region do
+        until @finish_flag.set?
+          @processors.each {|c| c.keepalive }
+          @finish_flag.wait(@child_keepalive_interval)
         end
-      rescue EOFError
       end
-    }
-    if $?.to_i != 0
-      raise "Command failed"
+      @processors.each {|c| c.join }
+    end
+
+    def stop(immediate)
+      if @finish_flag.set!
+        @processors.each {|c| c.stop(immediate) }
+      end
+      self
+    end
+
+    def replace(command=[$0]+ARGV, immediate)
+      return if @replaced_pid
+      stop(immediate)
+      @replaced_pid = Process.fork do
+        exec(*command)
+        exit!(127)
+      end
+      self
+    end
+
+    def join
+      @thread.join
+      @processors.each {|c| c.stop(false) }
+      @processors.each {|c| c.join }
+      self
+    end
+
+    def log_reopen
+      # TODO send signal to child processes
     end
   end
-
-  def kill
-    Process.kill(@kill_signal, @pid)
-    @kill_signal = :KILL
-  end
-end
-
 
 end
 

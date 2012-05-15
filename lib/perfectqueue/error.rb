@@ -17,33 +17,31 @@
 #
 
 module PerfectQueue
-  module Backend
-    def self.new_backend(client, config)
-      case config[:type]
-      when nil
-        raise ConfigError, "'type' option is not set"
-      when 'rdb_compat'
-        require_backend('rdb_compat')
-        RDBCompatBackend.new(client, config)
-      end
-    end
-
-    def self.require_backend(fname)
-      require File.expand_path("backend/#{fname}", File.dirname(__FILE__))
-    end
+  class TaskError < StandardError
   end
 
-  module BackendHelper
-    def initialize(client, config)
-      @client = client
-      @config = config
-    end
+  class CancelRequestedError < TaskError
+  end
 
-    attr_reader :client
+  class AlreadyFinishedError < TaskError
+  end
 
-    def close
-      # do nothing by default
-    end
+  class NotFoundError < TaskError
+  end
+
+  class AlreadyExistsError < TaskError
+  end
+
+  class PreemptedError < TaskError
+  end
+
+  class NotSupportedError < TaskError
+  end
+
+  class ConfigError < RuntimeError
+  end
+
+  class ProcessStopError < RuntimeError
   end
 end
 

@@ -1,48 +1,19 @@
-require 'rake'
-require 'rake/testtask'
-require 'rake/clean'
+require 'bundler'
+Bundler::GemHelper.install_tasks
 
-begin
-  require 'jeweler'
-  Jeweler::Tasks.new do |gemspec|
-    gemspec.name = "perfectqueue"
-    gemspec.summary = "Highly available distributed queue built on RDBMS or SimpleDB"
-    gemspec.author = "Sadayuki Furuhashi"
-    gemspec.email = "frsyuki@gmail.com"
-    gemspec.homepage = "https://github.com/treasure-data/perfectqueue"
-    #gemspec.has_rdoc = false
-    gemspec.require_paths = ["lib"]
-    gemspec.add_dependency "sequel", "~> 3.26.0"
-    gemspec.add_dependency "aws-sdk", "~> 1.1.1"
-    gemspec.test_files = Dir["test/**/*.rb", "test/**/*.sh"]
-    gemspec.files = Dir["bin/**/*", "lib/**/*"]
-    gemspec.executables = ['perfectqueue']
-  end
-  Jeweler::GemcutterTasks.new
-rescue LoadError
-  puts "Jeweler not available. Install it with: gem install jeweler"
+require 'rspec/core'
+require 'rspec/core/rake_task'
+
+RSpec::Core::RakeTask.new(:spec) do |t|
+  t.rspec_opts = ["-c", "-f progress", "-r ./spec/spec_helper.rb"]
+  t.pattern = 'spec/**/*_spec.rb'
+  t.verbose = true
 end
 
-Rake::TestTask.new(:test) do |t|
-  t.test_files = Dir['test/*_test.rb']
-  t.ruby_opts = ['-rubygems'] if defined? Gem
-  t.ruby_opts << '-I.'
+task :coverage do |t|
+  ENV['SIMPLE_COV'] = '1'
+  Rake::Task["spec"].invoke
 end
 
-VERSION_FILE = "lib/perfectqueue/version.rb"
-
-file VERSION_FILE => ["VERSION"] do |t|
-  version = File.read("VERSION").strip
-  File.open(VERSION_FILE, "w") {|f|
-    f.write <<EOF
-module PerfectQueue
-
-VERSION = '#{version}'
-
-end
-EOF
-  }
-end
-
-task :default => [VERSION_FILE, :build]
+task :default => :build
 

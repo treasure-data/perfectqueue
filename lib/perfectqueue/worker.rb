@@ -1,232 +1,160 @@
+#
+# PerfectQueue
+#
+# Copyright (C) 2012 FURUHASHI Sadayuki
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
 
 module PerfectQueue
 
-
-class MonitorThread
-  def initialize(engine, conf)
-    @engine = engine
-    @log = @engine.log
-    @backend = engine.backend
-    @finished = false
-
-    @timeout = conf[:timeout] || 600
-    @heartbeat_interval = conf[:heartbeat_interval] || @timeout*3/4
-    @kill_timeout = conf[:kill_timeout] || @timeout*10
-    @kill_interval = conf[:kill_interval] || 60
-    @retry_wait = conf[:retry_wait] || nil
-    @delete_wait = conf[:delete_wait] || 3600
-
-    @token = nil
-    @heartbeat_time = nil
-    @kill_time = nil
-    @kill_proc = nil
-    @canceled = false
-    @mutex = Mutex.new
-    @cond = ConditionVariable.new
-  end
-
-  def start
-    @thread = Thread.new(&method(:run))
-  end
-
-  def run
-    until @finished
-      @mutex.synchronize {
-        while true
-          return if @finished
-          break if @token
-          @cond.wait(@mutex)
-        end
-      }
-      process
+  class Worker
+    def self.run(runner, &block)
+      new(runner, &block).run
     end
-  rescue
-    @engine.stop($!)
-  end
 
-  def process
-    while true
-      sleep 1
-      @mutex.synchronize {
-        return if @finished
-        return unless @token
-        now = Time.now.to_i
-        try_extend(now)
-        try_kill(now)
-      }
+    def initialize(runner, &block)
+      @runner = runner
+      @config_load_proc = block
+      @finished = false
     end
-  end
 
-  def try_extend(now)
-    if now >= @heartbeat_time && !@canceled
-      @log.debug "extending timeout=#{now+@timeout} id=#{@task_id}"
+    def run
+      @engine = Multiprocess::Engine.new(@runner, load_config)
       begin
-        @backend.update(@token, now+@timeout)
-      rescue CanceledError
-        @log.info "task id=#{@task_id} is canceled."
-        @canceled = true
-        @kill_time = now
-      end
-      @heartbeat_time = now + @heartbeat_interval
-    end
-  end
-
-  def try_kill(now)
-    if now >= @kill_time
-      kill!
-      @kill_time = now + @kill_interval
-    end
-  end
-
-  def kill!
-    if @kill_proc
-      @log.info "killing id=#{@task_id}..."
-      begin
-        @kill_proc.call
-      rescue
-        @log.info "kill failed id=#{@task_id}: #{$!.class}: #{$!}"
-        $!.backtrace.each {|bt|
-          @log.debug "  #{bt}"
-        }
-      end
-    end
-  end
-
-  def stop
-    @mutex.synchronize {
-      @finished = true
-      @cond.broadcast
-    }
-  end
-
-  def shutdown
-    @thread.join
-  end
-
-  def set(token, task_id)
-    @mutex.synchronize {
-      now = Time.now.to_i
-      @token = token
-      @task_id = task_id
-      @heartbeat_time = now + @heartbeat_interval
-      @kill_time = now + @kill_timeout
-      @kill_proc = nil
-      @canceled = false
-      @cond.broadcast
-    }
-  end
-
-  def set_kill_proc(kill_proc)
-    @kill_proc = kill_proc
-  end
-
-  def reset(success)
-    @mutex.synchronize {
-      if success
-        @backend.finish(@token, @delete_wait)
-      elsif @retry_wait && !@canceled
+        @sig = install_signal_handlers
         begin
-          @backend.update(@token, Time.now.to_i+@retry_wait)
-        rescue
-          # ignore CanceledError
-        end
-      end
-      @token = nil
-    }
-  end
-end
-
-
-class Worker
-  def initialize(engine, conf)
-    @engine = engine
-    @log = @engine.log
-
-    @run_class = conf[:run_class]
-    @monitor = MonitorThread.new(engine, conf)
-
-    @token = nil
-    @task = nil
-    @mutex = Mutex.new
-    @cond = ConditionVariable.new
-  end
-
-  def start
-    @log.debug "running worker."
-    @thread = Thread.new(&method(:run))
-  end
-
-  def run
-    @monitor.start
-    begin
-      while true
-        @mutex.synchronize {
-          while true
-            return if @engine.finished?
-            break if @token
-            @cond.wait(@mutex)
-          end
-        }
-        begin
-          process(@token, @task)
+          @engine.run
         ensure
-          @token = nil
-          @engine.release_worker(self)
+          @sig.shutdown
         end
+      ensure
+        @engine.close
       end
-    ensure
-      @monitor.stop
-    end
-  rescue
-    @engine.stop($!)
-  end
-
-  def process(token, task)
-    @log.info "processing task id=#{task.id}"
-
-    @monitor.set(token, task.id)
-    success = false
-    begin
-      run = @run_class.new(task)
-
-      if run.respond_to?(:kill)
-        @monitor.set_kill_proc run.method(:kill)
-      end
-
-      run.run
-
-      @log.info "finished id=#{task.id}"
-      success = true
-
+      return nil
     rescue
-      @log.info "failed id=#{task.id}: #{$!.class}: #{$!}"
-      $!.backtrace.each {|bt|
-        @log.debug "  #{bt}"
-      }
+      @log.error "#{$!.class}: #{$!}"
+      $!.backtrace.each {|x| @log.error "  #{x}" }
+      return nil
+    end
 
-    ensure
-      @monitor.reset(success)
+    def stop
+      @log.info "immediate stop"
+      @engine.stop(true)
+      return true
+    end
+
+    def stop_graceful
+      @log.info "graceful stop"
+      @engine.stop(false)
+      return true
+    end
+
+    def restart
+      @log.info "immediate restart"
+      begin
+        @engine.restart(true, load_config)
+      rescue
+        # TODO log
+        return false
+      end
+      return true
+    end
+
+    def restart_graceful
+      @log.info "graceful restart"
+      begin
+        @engine.restart(false, load_config)
+      rescue
+        # TODO log
+        return false
+      end
+      return true
+    end
+
+    def replace(command=[$0]+ARGV)
+      @log.info "immediate binary replace"
+      @engine.replace(command, true)
+      return true
+    end
+
+    def replace_graceful(command=[$0]+ARGV)
+      @log.info "graceful binary replace"
+      @engine.replace(command, false)
+      self
+    end
+
+    def log_reopen
+      @log.info "reopen a log file"
+      @engine.log_reopen
+      @log.reopen!
+      return true
+    end
+
+    private
+    def load_config
+      raw_config = @config_load_proc.call
+      config = {}
+      raw_config.each_pair {|k,v| config[k.to_sym] = v }
+
+      log = DaemonsLogger.new(config[:log] || STDERR)
+      if old_log = @log
+        old_log.close
+      end
+      @log = log
+
+      config[:logger] = log
+
+      return config
+    end
+
+    def install_signal_handlers
+      SignalThread.new do |sig|
+        trap :TERM do
+          stop_graceful
+        end
+        trap :INT do
+          stop_graceful
+        end
+
+        trap :QUIT do
+          stop
+        end
+
+        trap :USR1 do
+          restart_graceful
+        end
+
+        trap :USR2 do
+          restart
+        end
+
+        trap :HUP do
+          replace_graceful
+        end
+
+        trap :WINCH do
+          replace
+        end
+
+        trap :CONT do
+          log_reopen
+        end
+
+        trap :CHLD, "SIG_IGN"
+      end
     end
   end
-
-  def stop
-    submit(nil, nil)
-  end
-
-  def shutdown
-    @monitor.shutdown
-    @thread.join
-  end
-
-  def submit(token, task)
-    @mutex.synchronize {
-      @token = token
-      @task = task
-      @cond.broadcast
-    }
-  end
-end
-
 
 end
 
