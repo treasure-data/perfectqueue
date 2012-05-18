@@ -74,11 +74,11 @@ module PerfectQueue
             stop(false)
           end
 
-          sig.trap :USR2 do
+          sig.trap :HUP do
             stop(true)
           end
 
-          sig.trap :HUP do
+          sig.trap :CONT do
             stop(false)
           end
 
@@ -86,7 +86,7 @@ module PerfectQueue
             stop(true)
           end
 
-          sig.trap :CONT do
+          sig.trap :USR2 do
             logrotated
           end
         end

@@ -26,7 +26,7 @@ module PerfectQueue
 
       @max_acquire = @config[:max_acquire] || 1
       @retention_time = @config[:retention_time] || 300
-      @alive_time = @config[:alive_time] || 3600
+      @alive_time = @config[:alive_time] || 300
       @retry_wait = @config[:retry_wait] || 300  # TODO retry wait algorithm
     end
 

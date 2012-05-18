@@ -129,11 +129,11 @@ module PerfectQueue
           restart(false)
         end
 
-        sig.trap :USR2 do
+        sig.trap :HUP do
           restart(true)
         end
 
-        sig.trap :HUP do
+        sig.trap :CONT do
           replace(false)
         end
 
@@ -141,7 +141,7 @@ module PerfectQueue
           replace(true)
         end
 
-        sig.trap :CONT do
+        sig.trap :USR2 do
           logrotated
         end
 
