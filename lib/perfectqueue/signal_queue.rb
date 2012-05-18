@@ -18,17 +18,22 @@
 
 module PerfectQueue
 
-  class SignalThread < Thread
+  class SignalQueue
+    def self.start(&block)
+      st = new(&block)
+      st.start
+      return st
+    end
+
     def initialize(&block)
       require 'thread'
+
       @handlers = {}
       @queue = []
       @mutex = Mutex.new
       @cond = ConditionVariable.new
 
       block.call(self) if block
-
-      super(&method(:main))
     end
 
     def trap(sig, &block)
@@ -43,27 +48,24 @@ module PerfectQueue
       old
     end
 
-    def shutdown
+    def start
+      @thread = Thread.new(&method(:run))
+    end
+
+    def join
+      @thread.join
+    end
+
+    def stop
       enqueue(nil)
+    end
+
+    def shutdown
+      stop
       join
     end
 
-    private
-    def enqueue(sig)
-      if Thread.current == self
-        @queue << sig
-        if @mutex.locked?
-          @cond.signal
-        end
-      else
-        @mutex.synchronize do
-          @queue << sig
-          @cond.signal
-        end
-      end
-    end
-
-    def main
+    def run
       finished = false
       until finished
         h = nil
@@ -87,6 +89,21 @@ module PerfectQueue
             STDERR.print "\t#{bt}\n"
             STDERR.flush
           }
+        end
+      end
+    end
+
+    private
+    def enqueue(sig)
+      if Thread.current == self
+        @queue << sig
+        if @mutex.locked?
+          @cond.signal
+        end
+      else
+        @mutex.synchronize do
+          @queue << sig
+          @cond.signal
         end
       end
     end

@@ -43,5 +43,11 @@ module PerfectQueue
 
   class ProcessStopError < RuntimeError
   end
+
+  class ImmediateProcessStopError < ProcessStopError
+  end
+
+  class GracefulProcessStopError < ProcessStopError
+  end
 end
 

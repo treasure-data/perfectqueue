@@ -20,7 +20,9 @@ module PerfectQueue
   module Multiprocess
     {
       :ChildProcess => 'multiprocess/child_process',
-      :Processor => 'multiprocess/processor',
+      :ChildProcessMonitor => 'multiprocess/child_process_monitor',
+      :ForkProcessor => 'multiprocess/fork_processor',
+      :ThreadProcessor => 'multiprocess/thread_processor',
     }.each_pair {|k,v|
       autoload k, File.expand_path(v, File.dirname(__FILE__))
     }

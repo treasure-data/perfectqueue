@@ -19,84 +19,79 @@
 module PerfectQueue
 
   class Worker
-    def self.run(runner, &block)
-      new(runner, &block).run
+    def self.run(runner, config=nil, &block)
+      new(runner, config, &block).run
     end
 
-    def initialize(runner, &block)
+    def initialize(runner, config=nil, &block)
+      # initial logger
+      STDERR.sync = true
+      @log = DaemonsLogger.new(STDERR)
+
       @runner = runner
+      block = Proc.new { config } if config
       @config_load_proc = block
       @finished = false
     end
 
     def run
-      @engine = Multiprocess::Engine.new(@runner, load_config)
+      @sig = install_signal_handlers
       begin
-        @sig = install_signal_handlers
+        @engine = Engine.new(@runner, load_config)
         begin
           @engine.run
         ensure
-          @sig.shutdown
+          @engine.shutdown
         end
       ensure
-        @engine.close
+        @sig.shutdown
       end
       return nil
     rescue
       @log.error "#{$!.class}: #{$!}"
-      $!.backtrace.each {|x| @log.error "  #{x}" }
+      $!.backtrace.each {|x| @log.warn "\t#{x}" }
       return nil
     end
 
-    def stop
-      @log.info "immediate stop"
-      @engine.stop(true)
-      return true
-    end
-
-    def stop_graceful
-      @log.info "graceful stop"
-      @engine.stop(false)
-      return true
-    end
-
-    def restart
-      @log.info "immediate restart"
+    def stop(immediate)
+      @log.info immediate ? "Received immediate stop" : "Received graceful stop"
       begin
-        @engine.restart(true, load_config)
+        @engine.stop(immediate) if @engine
       rescue
-        # TODO log
+        @log.error "failed to stop: #{$!}"
+        $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
         return false
       end
       return true
     end
 
-    def restart_graceful
-      @log.info "graceful restart"
+    def restart(immediate)
+      @log.info immediate ? "Received immediate restart" : "Received graceful restart"
       begin
-        @engine.restart(false, load_config)
+        @engine.restart(immediate, load_config)
       rescue
-        # TODO log
+        @log.error "failed to restart: #{$!}"
+        $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
         return false
       end
       return true
     end
 
-    def replace(command=[$0]+ARGV)
-      @log.info "immediate binary replace"
-      @engine.replace(command, true)
+    def replace(immediate, command=[$0]+ARGV)
+      @log.info immediate ? "Received immediate binary replace" : "Received graceful binary replace"
+      begin
+        @engine.replace(command, true)
+      rescue
+        @log.error "failed to replace: #{$!}"
+        $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
+        return false
+      end
       return true
     end
 
-    def replace_graceful(command=[$0]+ARGV)
-      @log.info "graceful binary replace"
-      @engine.replace(command, false)
-      self
-    end
-
-    def log_reopen
+    def logrotated
       @log.info "reopen a log file"
-      @engine.log_reopen
+      @engine.logrotated
       @log.reopen!
       return true
     end
@@ -107,10 +102,9 @@ module PerfectQueue
       config = {}
       raw_config.each_pair {|k,v| config[k.to_sym] = v }
 
+      old_log = @log
       log = DaemonsLogger.new(config[:log] || STDERR)
-      if old_log = @log
-        old_log.close
-      end
+      old_log.close if old_log
       @log = log
 
       config[:logger] = log
@@ -119,36 +113,36 @@ module PerfectQueue
     end
 
     def install_signal_handlers
-      SignalThread.new do |sig|
-        trap :TERM do
-          stop_graceful
+      SignalQueue.start do |sig|
+        sig.trap :TERM do
+          stop(false)
         end
-        trap :INT do
-          stop_graceful
-        end
-
-        trap :QUIT do
-          stop
+        sig.trap :INT do
+          stop(false)
         end
 
-        trap :USR1 do
-          restart_graceful
+        sig.trap :QUIT do
+          stop(true)
         end
 
-        trap :USR2 do
-          restart
+        sig.trap :USR1 do
+          restart(false)
         end
 
-        trap :HUP do
-          replace_graceful
+        sig.trap :USR2 do
+          restart(true)
         end
 
-        trap :WINCH do
-          replace
+        sig.trap :HUP do
+          replace(false)
         end
 
-        trap :CONT do
-          log_reopen
+        sig.trap :WINCH do
+          replace(true)
+        end
+
+        sig.trap :CONT do
+          logrotated
         end
 
         trap :CHLD, "SIG_IGN"

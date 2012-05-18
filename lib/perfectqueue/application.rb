@@ -21,6 +21,7 @@ module PerfectQueue
     {
       :Dispatch => 'application/dispatch',
       :Router => 'application/dispatch',
+      :Base => 'application/base',
     }.each_pair {|k,v|
       autoload k, File.expand_path(v, File.dirname(__FILE__))
     }

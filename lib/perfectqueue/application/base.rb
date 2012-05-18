@@ -17,42 +17,47 @@
 #
 
 module PerfectQueue
-  class Queue
-    include Model
+  module Application
 
-    def initialize(client)
-      super(client)
-    end
-
-    def [](task_id)
-      Task.new(@client, task_id)
-    end
-
-    def each(options={}, &block)
-      @client.list(options, &block)
-    end
-
-    include Enumerable
-
-    def poll(options={})
-      options = options.merge({:max_acquire=>1})
-      if acquired = poll_multi(options)
-        return acquired[0]
+    class ApplicationRunner < Runner
+      def initialize(base)
+        @base = base
       end
-      return nil
+
+      def run
+        if before_run
+          begin
+            @base.run
+          ensure
+            after_run
+          end
+        end
+      end
+
+      def kill(reason)
+        @base.kill(reason)
+      end
     end
 
-    def poll_multi(options={})
-      @client.acquire(options)
+    class Base < Runner
+      #def self.new(task)
+      #  b = allocate
+      #  b.task = task
+      #  b.__send__(:initialize)
+      #  ApplicationRunner.new(b)
+      #end
+
+      #def initialize
+      #end
+
+      def before_run
+        true
+      end
+
+      def after_run
+      end
     end
 
-    def submit(task_id, type, data, options={})
-      @client.submit(task_id, type, data, options)
-    end
-
-    def close
-      client.close
-    end
   end
 end
 

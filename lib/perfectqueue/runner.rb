@@ -22,7 +22,7 @@ module PerfectQueue
       @task = task
     end
 
-    attr_reader :task
+    attr_accessor :task
 
     def queue
       Queue.new(task.client)

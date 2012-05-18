@@ -35,9 +35,11 @@ module PerfectQueue
     :TaskWithMetadata => 'perfectqueue/task',
     :AcquiredTask => 'perfectqueue/task',
     :TaskMetadata => 'perfectqueue/task_metadata',
+    :TaskMonitor => 'perfectqueue/task_monitor',
     :TaskMetadataAccessors => 'perfectqueue/task_metadata',
     :TaskStatus => 'perfectqueue/task_status',
     :Worker => 'perfectqueue/worker',
+    :SignalQueue => 'perfectqueue/signal_queue',
   }.each_pair {|k,v|
     autoload k, File.expand_path(v, File.dirname(__FILE__))
   }

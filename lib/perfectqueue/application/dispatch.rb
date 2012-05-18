@@ -45,20 +45,21 @@ module PerfectQueue
 
         @patterns.each {|(pattern,sym)|
           if pattern.match(type)
-            runner = resolve_application_base(sym)
-            return @cache[type] = runner
+            base = resolve_application_base(sym)
+            return @cache[type] = base
           end
         }
         return @cache[type] = nil
       end
+      attr_reader :patterns
 
       private
-      def resolve_application_base(klass)
-        case klass
+      def resolve_application_base(sym)
+        case sym
         when Symbol
-          self.class.const_get(klass)
+          self.class.const_get(sym)
         else
-          klass
+          sym
         end
       end
     end
@@ -66,12 +67,12 @@ module PerfectQueue
     class Dispatch
       # Runner interface
       def self.new(task)
-        runner = router.route(task.type)
-        unless runner
-          task.release!
+        base = router.route(task.type)
+        unless base
+          task.retry!
           raise "unknown task type #{task.type.inspect}"   # TODO error class
         end
-        b = runner.new(task)
+        b = base.new(task)
         return b
       end
 
@@ -90,14 +91,15 @@ module PerfectQueue
           router.add(pattern, klass, options)
         end
 
-        private
         def router=(router)
-          remove_method(:router) if method_defined?(:router)
-          define_method(:router) { router }
+          (class<<self;self;end).instance_eval do
+            self.__send__(:define_method, :router) { router }
+          end
+          router
         end
 
         def router
-          router = Router.new
+          self.router = Router.new
         end
       end
     end

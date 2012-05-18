@@ -21,18 +21,13 @@ module PerfectQueue
   class Engine
     def initialize(runner, config)
       @runner = runner
-      configure(config)
 
-      @before_fork = nil
-      @after_fork = nil
-      @before_child_end = nil
-      @after_child_end = nil
-
-      @running_flag = BlockingFlag.new
       @finish_flag = BlockingFlag.new
 
+      @processor_class = Multiprocess::ForkProcessor
+
       @processors = []
-      restart(true, config)
+      restart(false, config)
     end
 
     def restart(immediate, config)
@@ -41,14 +36,14 @@ module PerfectQueue
       # TODO connection check
 
       @log = config[:logger] || Logger.new(STDERR)
-      # TODO log_level
 
       num_processors = config[:processors] || 1
 
+      # scaling
       extra = num_processors - @processors.length
       if extra > 0
         extra.times do
-          @processors << Multiprocess::Processor.new(self, config)
+          @processors << @processor_class.new(@runner, config)
         end
       elsif extra < 0
         -extra.times do
@@ -63,26 +58,26 @@ module PerfectQueue
         c.restart(immediate, config)
       }
 
-      @child_keepalive_interval = config[:child_keepalive_interval]
+      @child_keepalive_interval = (config[:child_keepalive_interval] || config[:child_heartbeat_interval] || 2).to_i
 
       self
     end
 
     def run
-      @running_flag.set_region do
-        until @finish_flag.set?
-          @processors.each {|c| c.keepalive }
-          @finish_flag.wait(@child_keepalive_interval)
-        end
+      until @finish_flag.set?
+        @processors.each {|c| c.keepalive }
+        @finish_flag.wait(@child_keepalive_interval)
       end
-      @processors.each {|c| c.join }
     end
 
     def stop(immediate)
-      if @finish_flag.set!
-        @processors.each {|c| c.stop(immediate) }
-      end
+      @finish_flag.set!
+      @processors.each {|c| c.stop(immediate) }
       self
+    end
+
+    def shutdown
+      @processors.each {|c| c.shutdown }
     end
 
     def replace(command=[$0]+ARGV, immediate)
@@ -95,15 +90,8 @@ module PerfectQueue
       self
     end
 
-    def join
-      @thread.join
-      @processors.each {|c| c.stop(false) }
-      @processors.each {|c| c.join }
-      self
-    end
-
-    def log_reopen
-      # TODO send signal to child processes
+    def logrotated
+      @processors.each {|c| c.logrotated }
     end
   end
 
