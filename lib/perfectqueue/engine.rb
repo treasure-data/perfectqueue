@@ -80,7 +80,7 @@ module PerfectQueue
       @processors.each {|c| c.shutdown }
     end
 
-    def replace(command=[$0]+ARGV, immediate)
+    def replace(immediate, command=[$0]+ARGV)
       return if @replaced_pid
       stop(immediate)
       @replaced_pid = Process.fork do

@@ -80,7 +80,7 @@ module PerfectQueue
     def replace(immediate, command=[$0]+ARGV)
       @log.info immediate ? "Received immediate binary replace" : "Received graceful binary replace"
       begin
-        @engine.replace(command, true)
+        @engine.replace(immediate, command)
       rescue
         @log.error "failed to replace: #{$!}"
         $!.backtrace.each {|bt| @log.warn "\t#{bt}" }

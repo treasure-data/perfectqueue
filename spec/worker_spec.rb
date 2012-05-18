@@ -39,7 +39,8 @@ class TestApp < PerfectQueue::Application::Dispatch
   end
 
   def self.new(task)
-    LATER.each {|block| block.call }
+    # TODO rspec doesn't work with fork?
+    #LATER.each {|block| block.call }
     super
   end
 
@@ -112,7 +113,7 @@ describe Worker do
 
   it 'kill reason' do
     TestApp.later do
-      # TODO rspec doesn't work with fork?
+      TestHandler.any_instance.should_receive(:kill)
     end
     submit('task01', 'test', {'sleep'=>4})
     sleep 2
