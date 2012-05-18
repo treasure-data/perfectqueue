@@ -111,7 +111,7 @@ module PerfectQueue
         rescue
           @log.error "process failed: #{$!.class}: #{$!}"
           $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
-          # TODO force exit!
+          raise  # force exit
         end
       end
     end

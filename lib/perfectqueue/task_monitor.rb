@@ -31,8 +31,8 @@ module PerfectQueue
 
       @task = nil
 
-      @mutex = Mutex.new
-      @cond = ConditionVariable.new
+      @mutex = Monitor.new  # support recursive lock
+      @cond = @mutex.new_cond
       @finished = false
     end
 
@@ -83,11 +83,11 @@ module PerfectQueue
       @mutex.synchronize {
         if task = @task
           begin
-            task.runner.kill(reason)
+            task.runner.kill(reason)  # may recursive lock
           rescue
             @log.error "failed to kill task: #{$!.class}: #{$!}"
             $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
-            # TODO force exit!
+            raise # force exit
           end
         end
       }
@@ -105,8 +105,7 @@ module PerfectQueue
     end
 
     def run
-      @mutex.lock
-      begin
+      @mutex.synchronize {
         now = Time.now.to_i
 
         until @finished
@@ -119,8 +118,8 @@ module PerfectQueue
             next_time = next_child_heartbeat
           end
 
-          next_wait = [1, next_time - now].min
-          @cond.wait(@mutex, next_wait) if next_wait > 0
+          next_wait = [1, next_time - now].max
+          @cond.wait(next_wait) if next_wait > 0  # TODO timeout doesn't work?
 
           now = Time.now.to_i
           if @task && next_task_heartbeat && now <= next_task_heartbeat
@@ -129,20 +128,11 @@ module PerfectQueue
           end
 
           if now <= next_child_heartbeat
-            # unlock region {
-            @mutex.unlock
-            begin
-              @child_heartbeat.call
-            ensure
-              @mutex.lock
-            end
-            # }
+            @child_heartbeat.call  # will recursive lock
             @last_child_heartbeat = now
           end
         end
-      ensure
-        @mutex.unlock
-      end
+      }
     rescue
       @log.error "Unknown error #{$!.class}: #{$!}. Exiting worker pid=#{Process.pid}"
       $!.backtrace.each {|bt| @log.warn "\t#{bt}" }

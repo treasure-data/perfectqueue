@@ -68,7 +68,7 @@ module PerfectQueue
         @processors.each {|c| c.keepalive }
         @finish_flag.wait(@child_keepalive_interval)
       end
-      shutdown(false)
+      join
     end
 
     def stop(immediate)
