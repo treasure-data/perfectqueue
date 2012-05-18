@@ -1,14 +1,13 @@
 require 'spec_helper'
-require 'singleton'
 
 class TestHandler < PerfectQueue::Application::Base
-  def before_run
-    if task.data['no_run']
-      false
-    else
-      true
-    end
-  end
+  #def before_run
+  #  if task.data['no_run']
+  #    false
+  #  else
+  #    true
+  #  end
+  #end
 
   def run
     puts "TestHandler: #{task}"
@@ -79,23 +78,23 @@ describe Worker do
     sleep 1
   end
 
-  it 'before_run' do
-    TestApp.later do
-      TestHandler.any_instance.should_receive(:run).once
-    end
-    submit('task01', 'test', {})
-    submit('task02', 'test', {'no_run'=>true})
-    sleep 1
-  end
+#  it 'before_run' do
+#    TestApp.later do
+#      TestHandler.any_instance.should_receive(:run).once
+#    end
+#    submit('task01', 'test', {})
+#    submit('task02', 'test', {'no_run'=>true})
+#    sleep 1
+#  end
 
-  it 'after_run' do
-    TestApp.later do
-      TestHandler.any_instance.should_receive(:after_run).twice
-    end
-    submit('task01', 'test', {})
-    submit('task02', 'test', {'raise_error'=>true})
-    sleep 1
-  end
+#  it 'after_run' do
+#    TestApp.later do
+#      TestHandler.any_instance.should_receive(:after_run).twice
+#    end
+#    submit('task01', 'test', {})
+#    submit('task02', 'test', {'raise_error'=>true})
+#    sleep 1
+#  end
 
   it 'term signal' do
     sleep 1
