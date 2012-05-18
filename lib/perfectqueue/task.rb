@@ -20,23 +20,23 @@ module PerfectQueue
   class Task
     include Model
 
-    def initialize(client, task_id)
+    def initialize(client, key)
       super(client)
-      @task_id = task_id
+      @key = key
     end
 
-    attr_reader :task_id
+    attr_reader :key
 
     def cancel_request!(options={})
-      @client.cancel_request(@task_id, options)
+      @client.cancel_request(@key, options)
     end
 
     def force_finish!(options={})
-      @client.force_finish(@task_id, options)
+      @client.force_finish(@key, options)
     end
 
     def metadata(options={})
-      @client.get_task_metadata(@task_id, options)
+      @client.get_task_metadata(@key, options)
     end
 
     def exists?(options={})
@@ -47,30 +47,30 @@ module PerfectQueue
     end
 
     def preempt(options={})
-      @client.preempt(@task_id, options)
+      @client.preempt(@key, options)
     end
 
     def inspect
-      "#<#{self.class} @task_id=#{@task_id.inspect}>"
+      "#<#{self.class} @key=#{@key.inspect}>"
     end
   end
 
   class TaskWithMetadata < Task
-    def initialize(client, task_id, attributes)
-      super(client, task_id)
+    def initialize(client, key, attributes)
+      super(client, key)
       @attributes = attributes
     end
 
     def inspect
-      "#<#{self.class} @task_id=#{@task_id.inspect} @attributes=#{@attributes.inspect}>"
+      "#<#{self.class} @key=#{@key.inspect} @attributes=#{@attributes.inspect}>"
     end
 
     include TaskMetadataAccessors
   end
 
   class AcquiredTask < TaskWithMetadata
-    def initialize(client, task_id, attributes, task_token)
-      super(client, task_id, attributes)
+    def initialize(client, key, attributes, task_token)
+      super(client, key, attributes)
       @task_token = task_token
     end
 
@@ -91,12 +91,12 @@ module PerfectQueue
     end
 
     #def to_json
-    #  [@task_id, @task_token, @attributes].to_json
+    #  [@key, @task_token, @attributes].to_json
     #end
 
     #def self.from_json(data, client)
-    #  task_id, task_token, attributes = JSON.load(data)
-    #  new(client, task_id, attributes, task_token)
+    #  key, task_token, attributes = JSON.load(data)
+    #  new(client, key, attributes, task_token)
     #end
   end
 end

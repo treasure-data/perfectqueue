@@ -78,18 +78,18 @@ module PerfectQueue
   end
 
   class TaskMetadata
-    def initialize(client, task_id, attributes)
+    def initialize(client, key, attributes)
       super(client)
-      @task_id = task_id
+      @key = key
       @attributes = attributes
     end
 
     def task
-      Task.new(@client, @task_id)
+      Task.new(@client, @key)
     end
 
     def inspect
-      "#<#{self.class} @task_id=#{@task_id.inspect} @attributes=#{@attributes.inspect}>"
+      "#<#{self.class} @key=#{@key.inspect} @attributes=#{@attributes.inspect}>"
     end
 
     include TaskMetadataAccessors

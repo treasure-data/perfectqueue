@@ -24,8 +24,8 @@ module PerfectQueue
       super(client)
     end
 
-    def [](task_id)
-      Task.new(@client, task_id)
+    def [](key)
+      Task.new(@client, key)
     end
 
     def each(options={}, &block)
@@ -46,8 +46,8 @@ module PerfectQueue
       @client.acquire(options)
     end
 
-    def submit(task_id, type, data, options={})
-      @client.submit(task_id, type, data, options)
+    def submit(key, type, data, options={})
+      @client.submit(key, type, data, options)
     end
 
     def close

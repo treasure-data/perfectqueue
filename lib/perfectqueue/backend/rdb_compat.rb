@@ -21,7 +21,7 @@ module PerfectQueue
     class RDBCompatBackend
       include BackendHelper
 
-      class Token < Struct.new(:task_id)
+      class Token < Struct.new(:key)
       end
 
       def initialize(client, config)
@@ -86,21 +86,21 @@ SQL
       end
 
       # => TaskStatus
-      def get_task_metadata(task_id, options)
+      def get_task_metadata(key, options)
         now = (options[:now] || Time.now).to_i
 
         connect {
           row = @db.fetch("SELECT timeout, data, created_at, resource FROM `#{@table}` LIMIT 1").first
           unless row
-            raise NotFoundError, "task id=#{task_id} does no exist"
+            raise NotFoundError, "task key=#{key} does no exist"
           end
           attributes = create_attributes(now, row)
-          return TaskMetadata.new(@client, task_id, attributes)
+          return TaskMetadata.new(@client, key, attributes)
         }
       end
 
       # => AcquiredTask
-      def preempt(task_id, alive_time, options)
+      def preempt(key, alive_time, options)
         raise NotSupportedError.new("preempt is not supported by rdb_compat backend")
       end
 
@@ -119,7 +119,7 @@ SQL
       end
 
       # => Task
-      def submit(task_id, type, data, options)
+      def submit(key, type, data, options)
         now = (options[:now] || Time.now).to_i
         run_at = (options[:run_at] || now).to_i
         user = options[:user]
@@ -129,10 +129,10 @@ SQL
 
         connect {
           begin
-            n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at, resource) VALUES (?, ?, ?, ?, ?);", task_id, run_at, data.to_json, now, user].insert
-            return Task.new(@client, task_id)
+            n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at, resource) VALUES (?, ?, ?, ?, ?);", key, run_at, data.to_json, now, user].insert
+            return Task.new(@client, key)
           rescue Sequel::DatabaseError
-            raise AlreadyExistsError, "task id=#{task_id} already exists"
+            raise AlreadyExistsError, "task key=#{key} already exists"
           end
         }
       end
@@ -172,33 +172,33 @@ SQL
       end
 
       # => nil
-      def cancel_request(task_id, options)
+      def cancel_request(key, options)
         now = (options[:now] || Time.now).to_i
 
         # created_at=-1 means cancel_requested
         connect {
-          n = @db["UPDATE `#{@table}` SET created_at=-1 WHERE id=? AND created_at IS NOT NULL;", task_id].update
+          n = @db["UPDATE `#{@table}` SET created_at=-1 WHERE id=? AND created_at IS NOT NULL;", key].update
           if n <= 0
-            raise AlreadyFinishedError, "task id=#{task_id} does not exist or already finished."
+            raise AlreadyFinishedError, "task key=#{key} does not exist or already finished."
           end
         }
         nil
       end
 
-      def force_finish(task_id, retention_time, options)
-        finish(Token.new(task_id), retention_time, options)
+      def force_finish(key, retention_time, options)
+        finish(Token.new(key), retention_time, options)
       end
 
       # => nil
       def finish(task_token, retention_time, options)
         now = (options[:now] || Time.now).to_i
         delete_timeout = now + retention_time
-        task_id = task_token.task_id
+        key = task_token.key
 
         connect {
-          n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL;", delete_timeout, task_id].update
+          n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL;", delete_timeout, key].update
           if n <= 0
-            raise AlreadyFinishedError, "task id=#{task_id} does not exist or already finished."
+            raise AlreadyFinishedError, "task key=#{key} does not exist or already finished."
           end
         }
         nil
@@ -208,18 +208,18 @@ SQL
       def heartbeat(task_token, alive_time, options)
         now = (options[:now] || Time.now).to_i
         next_timeout = now + alive_time
-        task_id = task_token.task_id
+        key = task_token.key
 
         connect {
-          n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND created_at IS NOT NULL;", next_timeout, task_id].update
+          n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND created_at IS NOT NULL;", next_timeout, key].update
           if n <= 0
-            row = @db.fetch("SELECT id, created_at FROM `#{@table}` WHERE id=? LIMIT 1", task_id).first
+            row = @db.fetch("SELECT id, created_at FROM `#{@table}` WHERE id=? LIMIT 1", key).first
             if row == nil
-              raise AlreadyFinishedError, "task id=#{task_id} already finished."
+              raise AlreadyFinishedError, "task key=#{key} already finished."
             elsif row[:created_at] == -1
-              raise CancelRequestedError, "task id=#{task_id} is cancel requested."
+              raise CancelRequestedError, "task key=#{key} is cancel requested."
             else
-              raise AlreadyFinishedError, "task id=#{task_id} already finished."
+              raise AlreadyFinishedError, "task key=#{key} already finished."
             end
           end
         }

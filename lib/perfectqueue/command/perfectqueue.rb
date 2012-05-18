@@ -129,7 +129,7 @@ when :list
     format = "%30s %10s %18s %18s %28s %28s   %s"
     puts format % ["key", "type", "user", "status", "created_at", "timeout", "data"]
     queue.each {|task|
-      puts format % [task.task_id, task.type, task.user, task.status, task.created_at, task.timeout, task.data]
+      puts format % [task.key, task.type, task.user, task.status, task.created_at, task.timeout, task.data]
       n += 1
     }
   }

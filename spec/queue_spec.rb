@@ -39,24 +39,24 @@ describe Queue do
 
     a = []
     @queue.each {|t| a << t }
-    a.sort_by! {|t| t.task_id }
+    a.sort_by! {|t| t.key }
 
     task01 = a.shift
     task01.finished?.should == false
     task01.type == 'type1'
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
     task01.data["a"].should == 1
 
     t2 = a.shift
     t2.finished?.should == false
     t2.type == 'type1'
-    t2.task_id.should == 'task02'
+    t2.key.should == 'task02'
     t2.data["a"].should == 2
 
     t3 = a.shift
     t3.finished?.should == false
     t3.type == 'type1'
-    t3.task_id.should == 'task03'
+    t3.key.should == 'task03'
     t3.data["a"].should == 3
 
     a.empty?.should == true
@@ -69,13 +69,13 @@ describe Queue do
     @queue.submit('task03', 'type1', {"a"=>3}, :now=>now+2)
 
     task01 = @queue.poll(:now=>now+10)
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
 
     t2 = @queue.poll(:now=>now+10)
-    t2.task_id.should == 'task02'
+    t2.key.should == 'task02'
 
     t3 = @queue.poll(:now=>now+10)
-    t3.task_id.should == 'task03'
+    t3.key.should == 'task03'
 
     t4 = @queue.poll(:now=>now+10)
     t4.should == nil
@@ -86,7 +86,7 @@ describe Queue do
     @queue.submit('task01', 'type1', {"a"=>1}, :now=>now+0)
 
     task01 = @queue.poll(:now=>now+10)
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
 
     t2 = @queue.poll(:now=>now+10)
     t2.should == nil
@@ -94,7 +94,7 @@ describe Queue do
     task01.release!(:now=>now+10)
 
     t3 = @queue.poll(:now=>now+11)
-    t3.task_id.should == 'task01'
+    t3.key.should == 'task01'
   end
 
   it 'timeout' do
@@ -102,13 +102,13 @@ describe Queue do
     @queue.submit('task01', 'type1', {"a"=>1}, :now=>now+0)
 
     task01 = @queue.poll(:now=>now+10, :alive_time=>10)
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
 
     t2 = @queue.poll(:now=>now+15)
     t2.should == nil
 
     t3 = @queue.poll(:now=>now+20)
-    t3.task_id.should == 'task01'
+    t3.key.should == 'task01'
   end
 
   it 'heartbeat' do
@@ -116,7 +116,7 @@ describe Queue do
     @queue.submit('task01', 'type1', {"a"=>1}, :now=>now+0)
 
     task01 = @queue.poll(:now=>now+10, :alive_time=>10)
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
 
     task01.heartbeat!(:alive_time=>15, :now=>now+10)
 
@@ -124,7 +124,7 @@ describe Queue do
     t2.should == nil
 
     t3 = @queue.poll(:now=>now+30)
-    t3.task_id.should == 'task01'
+    t3.key.should == 'task01'
   end
 
   it 'retry' do
@@ -132,7 +132,7 @@ describe Queue do
     @queue.submit('task01', 'type1', {"a"=>1}, :now=>now+0)
 
     task01 = @queue.poll(:now=>now+10, :alive_time=>10)
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
 
     task01.retry!(:retry_wait=>15, :now=>now+10)
 
@@ -140,7 +140,7 @@ describe Queue do
     t2.should == nil
 
     t3 = @queue.poll(:now=>now+30)
-    t3.task_id.should == 'task01'
+    t3.key.should == 'task01'
   end
 
   it 'froce_finish' do
@@ -148,7 +148,7 @@ describe Queue do
     @queue.submit('task01', 'type1', {"a"=>1}, :now=>now+0)
 
     task01 = @queue.poll(:now=>now+10)
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
 
     @queue['task01'].metadata.running?.should == true
 
@@ -168,7 +168,7 @@ describe Queue do
     #@queue['task01'].metadata.cancel_requested?.should == false
 
     task01 = @queue.poll(:now=>now+10, :alive_time=>10)
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
 
     @queue['task01'].metadata.finished?.should == false
     @queue['task01'].metadata.running?.should == true
@@ -196,7 +196,7 @@ describe Queue do
     @queue.submit('task01', 'type1', {"a"=>1}, :now=>now+0)
 
     task01 = @queue.poll(:now=>now+10, :alive_time=>10)
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
 
     task01.finish!
 
@@ -212,7 +212,7 @@ describe Queue do
     @queue['task01'].metadata.finished?.should == false
 
     task01 = @queue.poll(:now=>now+10, :alive_time=>10)
-    task01.task_id.should == 'task01'
+    task01.key.should == 'task01'
 
     task01.finish!(:now=>now+11, :retention_time=>10)
 

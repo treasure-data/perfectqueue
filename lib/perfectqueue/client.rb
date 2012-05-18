@@ -37,16 +37,16 @@ module PerfectQueue
       @backend.init_database(options)
     end
 
-    def get_task_metadata(task_id, options={})
-      @backend.get_task_metadata(task_id, options)
+    def get_task_metadata(key, options={})
+      @backend.get_task_metadata(key, options)
     end
 
     # :message => nil
     # :alive_time => @alive_time
-    def preempt(task_id, options={})
+    def preempt(key, options={})
       alive_time = options[:alive_time] || @alive_time
 
-      @backend.preempt(task_id, alive_time, options)
+      @backend.preempt(key, alive_time, options)
     end
 
     def list(options={}, &block)
@@ -57,8 +57,8 @@ module PerfectQueue
     # :message => nil
     # :user => nil
     # :priority => nil
-    def submit(task_id, type, data, options={})
-      @backend.submit(task_id, type, data, options)
+    def submit(key, type, data, options={})
+      @backend.submit(key, type, data, options)
     end
 
     # :max_acquire => nil
@@ -71,14 +71,14 @@ module PerfectQueue
     end
 
     # :message => nil
-    def cancel_request(task_id, options={})
-      @backend.cancel_request(task_id, options)
+    def cancel_request(key, options={})
+      @backend.cancel_request(key, options)
     end
 
-    def force_finish(task_id, options={})
+    def force_finish(key, options={})
       retention_time = options[:retention_time] || @retention_time
 
-      @backend.force_finish(task_id, retention_time, options)
+      @backend.force_finish(key, retention_time, options)
     end
 
     # :message => nil
