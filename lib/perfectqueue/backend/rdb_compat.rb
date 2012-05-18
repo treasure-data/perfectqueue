@@ -70,6 +70,21 @@ SQL
       #KEEPALIVE = 10
       MAX_RETRY = 10
 
+      def init_database(options)
+        sql = %[
+            CREATE TABLE IF NOT EXISTS `#{@table}` (
+              id VARCHAR(256) NOT NULL,
+              timeout INT NOT NULL,
+              data BLOB NOT NULL,
+              created_at INT,
+              resource VARCHAR(256),
+              PRIMARY KEY (id)
+            );]
+        connect {
+          @db.run sql
+        }
+      end
+
       # => TaskStatus
       def get_task_metadata(task_id, options)
         now = (options[:now] || Time.now).to_i

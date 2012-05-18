@@ -33,6 +33,10 @@ module PerfectQueue
     attr_reader :backend
     attr_reader :config
 
+    def init_database(options={})
+      @backend.init_database(options)
+    end
+
     def get_task_metadata(task_id, options={})
       @backend.get_task_metadata(task_id, options)
     end

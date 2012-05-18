@@ -36,9 +36,25 @@ module PerfectQueue
       @attributes[:message]
     end
 
-    # TODO
-    #def created_at
-    #end
+    def user
+      @attributes[:user]
+    end
+
+    def created_at
+      if t = @attributes[:created_at]
+        return Time.at(t)
+      else
+        return nil
+      end
+    end
+
+    def timeout
+      if t = @attributes[:timeout]
+        return Time.at(t)
+      else
+        return nil
+      end
+    end
 
     def finished?
       status == TaskStatus::FINISHED
