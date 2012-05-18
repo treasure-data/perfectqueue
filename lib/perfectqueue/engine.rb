@@ -68,6 +68,7 @@ module PerfectQueue
         @processors.each {|c| c.keepalive }
         @finish_flag.wait(@child_keepalive_interval)
       end
+      shutdown(false)
     end
 
     def stop(immediate)
@@ -76,8 +77,14 @@ module PerfectQueue
       self
     end
 
-    def shutdown
-      @processors.each {|c| c.shutdown }
+    def join
+      @processors.each {|c| c.join }
+      self
+    end
+
+    def shutdown(immediate)
+      stop(immediate)
+      join
     end
 
     def replace(immediate, command=[$0]+ARGV)

@@ -47,6 +47,7 @@ module PerfectQueue
         if c = @cpm
           c.start_killing(immediate)
         end
+        self
       end
 
       def keepalive
@@ -56,8 +57,8 @@ module PerfectQueue
         end
 
         if c = @cpm
-          # receive heartbeat
           begin
+            # receive heartbeat
             keptalive = c.check_heartbeat(@child_heartbeat_limit)
             unless keptalive
               @log.error "Heartbeat broke out. Restarting child process."
@@ -83,17 +84,21 @@ module PerfectQueue
             $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
           end
         end
+
+        nil
       end
 
       def join
         while !try_join
           sleep (@child_kill_interval+1) / 2  # TODO
         end
+        self
       end
 
-      def shutdown
-        stop(false)
-        join
+      def logrotated
+        if c = @cpm
+          c.send_signal(:CONT)
+        end
       end
 
       private

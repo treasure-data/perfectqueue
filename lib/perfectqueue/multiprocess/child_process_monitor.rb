@@ -49,7 +49,7 @@ module PerfectQueue
         end
 
         now = Time.now.to_i
-        send_signal(now, nil)
+        kill_child(now, nil)
         @kill_start_time = now
       end
 
@@ -70,7 +70,7 @@ module PerfectQueue
         # resend signal
         now = Time.now.to_i
         if @last_kill_time + kill_interval <= now
-          send_signal(now, graceful_kill_limit)
+          kill_child(now, graceful_kill_limit)
         end
 
         return false
@@ -80,8 +80,16 @@ module PerfectQueue
         @rpipe.close unless @rpipe.closed?
       end
 
+      def send_signal(sig)
+        begin
+          Process.kill(sig, @pid)
+        rescue Errno::ESRCH, Errno::EPERM
+          # TODO log?
+        end
+      end
+
       private
-      def send_signal(now, graceful_kill_limit)
+      def kill_child(now, graceful_kill_limit)
         begin
           if @kill_immediate || (graceful_kill_limit && @kill_start_time + graceful_kill_limit < now)
             @log.debug "sending SIGKILL to pid=#{@pid} for immediate stop"

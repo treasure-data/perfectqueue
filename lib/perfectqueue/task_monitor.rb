@@ -87,7 +87,7 @@ module PerfectQueue
           rescue
             @log.error "failed to kill task: #{$!.class}: #{$!}"
             $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
-            # TODO force exit?
+            # TODO force exit!
           end
         end
       }

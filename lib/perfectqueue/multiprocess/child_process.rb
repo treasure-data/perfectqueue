@@ -41,6 +41,10 @@ module PerfectQueue
         super
       end
 
+      def logrotated
+        @log.reopen!
+      end
+
       def child_heartbeat
         @wpipe.write HEARTBEAT_PACKET
       rescue
@@ -82,8 +86,8 @@ module PerfectQueue
             stop(true)
           end
 
-          sig.trap :SIGCONT do
-            # do nothing?
+          sig.trap :CONT do
+            logrotated
           end
         end
       end

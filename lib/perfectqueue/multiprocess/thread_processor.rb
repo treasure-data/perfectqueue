@@ -49,11 +49,6 @@ module PerfectQueue
         @thread.join
       end
 
-      def shutdown
-        stop(false)
-        join
-      end
-
       def restart(immediate, config)
         @poll_interval = config[:poll_interval] || 1.0
         @log = config[:logger]
@@ -116,6 +111,7 @@ module PerfectQueue
         rescue
           @log.error "process failed: #{$!.class}: #{$!}"
           $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
+          # TODO force exit!
         end
       end
     end

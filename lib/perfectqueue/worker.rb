@@ -41,7 +41,7 @@ module PerfectQueue
         begin
           @engine.run
         ensure
-          @engine.shutdown
+          @engine.shutdown(true)
         end
       ensure
         @sig.shutdown
