@@ -80,7 +80,7 @@ system('perfectsched run -I. -rapp/workers/dispatch Dispatch')
 or:
 
 ```ruby
-request 'perfectqueue'
+require 'perfectqueue'
 require 'app/workers/dispatch'
 
 PerfectQueue::Worker.run(Dispatch) {
@@ -93,7 +93,7 @@ PerfectQueue::Worker.run(Dispatch) {
 
 ### Signal handlers
 
-- **TERM,INT:** graceful shutdown
+- **TERM**,**INT:** graceful shutdown
 - **QUIT:** immediate shutdown
 - **USR1:** graceful restart
 - **HUP:** immediate restart
