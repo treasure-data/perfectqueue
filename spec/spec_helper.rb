@@ -14,7 +14,7 @@ end
 require 'fileutils'
 
 def test_queue_config
-  {:type=>'rdb_compat', :url=>'sqlite://spec/test.db', :table=>'test_tasks'}
+  {:type=>'rdb_compat', :url=>'sqlite://spec/test.db', :table=>'test_tasks', :processor_type=>'thread'}
 end
 
 def create_test_queue
