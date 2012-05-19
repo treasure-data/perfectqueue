@@ -39,14 +39,14 @@ module PerfectQueue
           end
         end
         @tm.join
-      end
-
-      def start
-        @thread = Thread.new(&method(:run))
+      ensure
+        @thread = nil
       end
 
       def join
-        @thread.join
+        while t = @thread
+          t.join
+        end
       end
 
       def restart(immediate, config)
@@ -68,7 +68,9 @@ module PerfectQueue
       end
 
       def keepalive
-        # do nothing
+        unless @thread
+          @thread = Thread.new(&method(:run))
+        end
       end
 
       def logrotated

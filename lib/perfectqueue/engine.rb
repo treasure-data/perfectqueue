@@ -24,7 +24,15 @@ module PerfectQueue
 
       @finish_flag = BlockingFlag.new
 
-      @processor_class = Multiprocess::ForkProcessor
+      processor_type = config[:processor_type] || :process
+      case processor_type.to_sym
+      when :process
+        @processor_class = Multiprocess::ForkProcessor
+      when :thread
+        @processor_class = Multiprocess::ThreadProcessor
+      else
+        raise ConfigError, "Unknown processor_type: #{config[:processor_type].inspect}"
+      end
 
       @processors = []
       restart(false, config)
@@ -72,8 +80,8 @@ module PerfectQueue
     end
 
     def stop(immediate)
-      @finish_flag.set!
       @processors.each {|c| c.stop(immediate) }
+      @finish_flag.set!
       self
     end
 

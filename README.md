@@ -106,6 +106,7 @@ PerfectQueue::Worker.run(Dispatch) {
 - **type:** backend type (required; see following sections)
 - **log:** log file path (default: use stderr)
 - **processors:** number of child processes (default: 1)
+- **processor_type:** type of processor ('process' or 'thread') (default: 'process')
 - **poll_interval:** interval to poll tasks in seconds (default: 1.0 sec)
 - **retention_time:** duration to retain finished tasks (default: 300 sec)
 - **task_heartbeat_interval:** interval to send heartbeat requests (default: 2 sec)
