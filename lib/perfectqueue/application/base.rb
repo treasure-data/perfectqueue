@@ -19,43 +19,7 @@
 module PerfectQueue
   module Application
 
-    class ApplicationRunner < Runner
-      def initialize(base)
-        @base = base
-      end
-
-      def run
-        if before_run
-          begin
-            @base.run
-          ensure
-            after_run
-          end
-        end
-      end
-
-      def kill(reason)
-        @base.kill(reason)
-      end
-    end
-
     class Base < Runner
-      #def self.new(task)
-      #  b = allocate
-      #  b.task = task
-      #  b.__send__(:initialize)
-      #  ApplicationRunner.new(b)
-      #end
-
-      #def initialize
-      #end
-
-      def before_run
-        true
-      end
-
-      def after_run
-      end
     end
 
   end

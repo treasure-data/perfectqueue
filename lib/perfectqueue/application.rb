@@ -20,7 +20,7 @@ module PerfectQueue
   module Application
     {
       :Dispatch => 'application/dispatch',
-      :Router => 'application/dispatch',
+      :Router => 'application/router',
       :Base => 'application/base',
     }.each_pair {|k,v|
       autoload k, File.expand_path(v, File.dirname(__FILE__))

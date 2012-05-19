@@ -19,61 +19,26 @@
 module PerfectQueue
   module Application
 
-    class Router
-      def initialize
-        @patterns = []
-        @cache = {}
-      end
-
-      def add(pattern, sym, options={})
-        case pattern
-        when Regexp
-          # ok
-        when String, Symbol
-          pattern = /#{Regexp.escape(pattern)}/
-        else
-          raise ArguementError, "pattern should be String or Regexp but got #{pattern.class}: #{pattern.inspect}"
-        end
-
-        @patterns << [pattern, sym]
-      end
-
-      def route(type)
-        if @cache.has_key?(type)
-          return @cache[type]
-        end
-
-        @patterns.each {|(pattern,sym)|
-          if pattern.match(type)
-            base = resolve_application_base(sym)
-            return @cache[type] = base
-          end
-        }
-        return @cache[type] = nil
-      end
-      attr_reader :patterns
-
-      private
-      def resolve_application_base(sym)
-        case sym
-        when Symbol
-          self.class.const_get(sym)
-        else
-          sym
-        end
-      end
-    end
-
-    class Dispatch
+    class Dispatch < Runner
       # Runner interface
-      def self.new(task)
-        base = router.route(task.type)
+      def initialize(task)
+        base = self.class.router.route(task.type)
         unless base
           task.retry!
-          raise "unknown task type #{task.type.inspect}"   # TODO error class
+          raise "Unknown task type #{task.type.inspect}"   # TODO error class
         end
-        b = base.new(task)
-        return b
+        @runner = base.new(task)
+        super
+      end
+
+      attr_reader :runner
+
+      def run
+        @runner.run
+      end
+
+      def kill(reason)
+        @runner.kill(reason)
       end
 
       # DSL interface
