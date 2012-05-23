@@ -41,6 +41,16 @@ module PerfectQueue
         super
       end
 
+      # override
+      def join
+        # do nothing
+      end
+
+      # override
+      def keepalive
+        # do nothing
+      end
+
       def logrotated
         @log.reopen!
       end

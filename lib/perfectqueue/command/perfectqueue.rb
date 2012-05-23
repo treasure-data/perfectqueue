@@ -125,7 +125,7 @@ case cmd
 when :list
   n = 0
   PerfectQueue.open(config_load_proc.call) {|queue|
-    format = "%30s %10s %18s %18s %28s %28s   %s"
+    format = "%30s %15s %18s %18s %28s %28s   %s"
     puts format % ["key", "type", "user", "status", "created_at", "timeout", "data"]
     queue.each {|task|
       puts format % [task.key, task.type, task.user, task.status, task.created_at, task.timeout, task.data]

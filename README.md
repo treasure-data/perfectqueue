@@ -29,7 +29,56 @@ AcquiredTask#finish!
 
 # retry a task
 AcquiredTask#retry!
+
+# create a task reference
+Queue#[](key)  #=> #<Task>
+
+# chack the existance of the task
+Task#exists?
+
+# request to cancel a task
+# (actual behavior depends on the worker program)
+Task#cancel_request!
+
+# force finish a task
+# be aware that worker programs can't detect it
+Task#force_finish!
 ```
+
+### Error classes
+
+```
+TaskError
+
+##
+# Workers may get these errors:
+#
+
+CancelRequestedError < TaskError
+
+AlreadyFinishedError < TaskError
+
+PreemptedError < TaskError
+
+ProcessStopError < RuntimeError
+
+ImmediateProcessStopError < ProcessStopError
+
+GracefulProcessStopError < ProcessStopError
+
+##
+# Client or other situation:
+#
+
+ConfigError < RuntimeError
+
+NotFoundError < TaskError
+
+AlreadyExistsError < TaskError
+
+NotSupportedError < TaskError
+```
+
 
 ###  Example
 
@@ -74,7 +123,7 @@ end
 In a launcher script or rake file:
 
 ```ruby
-system('perfectsched run -I. -rapp/workers/dispatch Dispatch')
+system('perfectqueue run -I. -rapp/workers/dispatch Dispatch')
 ```
 
 or:
@@ -125,4 +174,66 @@ additional configuration:
 
 - **url:** URL to the RDBMS (example: 'mysql://user:password@host:port/database')
 - **table:** name of the table to use
+
+### rdb
+
+Not implemented yet.
+
+
+## Command line management tool
+
+```
+Usage: perfectqueue [options] <command>
+
+commands:
+    list                             Show list of tasks
+    submit <key> <type> <data>       Submit a new task
+    cancel_request <key>             Cancel request
+    force_finish <key>               Force finish a task
+    run <class>                      Run a worker process
+    init                             Initialize a backend database
+
+options:
+    -e, --environment ENV            Framework environment (default: development)
+    -c, --config PATH.yml            Path to a configuration file (default: config/perfectqueue.yml)
+
+options for submit:
+    -u, --user USER                  Set user
+    -t, --time UNIXTIME              Set time to run the task
+
+options for run:
+    -I, --include PATH               Add $LOAD_PATH directory
+    -r, --require PATH               Require files before starting
+```
+
+
+### initializing a database
+
+    # assume that the config/perfectqueue.yml exists
+    $ perfectqueue init
+
+### submitting a task
+
+    $ perfectqueue submit k1 user_task '{"uid":1}' -u user_1
+
+### listing tasks
+
+    $ perfectqueue list
+                               key            type               user             status                   created_at                      timeout   data
+                                k1       user_task             user_1            waiting    2012-05-18 13:05:31 -0700    2012-05-18 14:27:36 -0700   {"uid"=>1, "type"=>"user_task"}
+                                k2       user_task             user_2            waiting    2012-05-18 13:35:33 -0700    2012-05-18 14:35:33 -0700   {"uid"=>2, "type"=>"user_task"}
+                                k3     system_task                               waiting    2012-05-18 14:04:02 -0700    2012-05-22 15:04:02 -0700   {"task_id"=>32, "type"=>"system_task"}
+    3 entries.
+
+### cancel a tasks
+
+    $ perfectqueue cancel_request k1
+
+### force finish a tasks
+
+    $ perfectqueue cancel_request k2
+
+### running a worker
+
+    $ perfectqueue run -I. -Ilib -rconfig/boot.rb -rapps/workers/task_dispatch.rb TaskDispatch
 

@@ -49,6 +49,12 @@ module PerfectQueue
         end
       end
 
+      def keepalive
+        unless @thread
+          @thread = Thread.new(&method(:run))
+        end
+      end
+
       def restart(immediate, config)
         @poll_interval = config[:poll_interval] || 1.0
         @log = config[:logger]
@@ -65,12 +71,6 @@ module PerfectQueue
         @log.info immediate ? "Stopping worker thread immediately" : "Stopping worker thread gracefully"
         @tm.stop_task(immediate)
         @finish_flag.set!
-      end
-
-      def keepalive
-        unless @thread
-          @thread = Thread.new(&method(:run))
-        end
       end
 
       def logrotated
