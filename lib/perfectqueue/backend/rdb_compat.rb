@@ -90,7 +90,7 @@ SQL
         now = (options[:now] || Time.now).to_i
 
         connect {
-          row = @db.fetch("SELECT timeout, data, created_at, resource FROM `#{@table}` LIMIT 1").first
+          row = @db.fetch("SELECT timeout, data, created_at, resource FROM `#{@table}` WHERE id=? LIMIT 1", key).first
           unless row
             raise NotFoundError, "task key=#{key} does no exist"
           end
@@ -278,7 +278,10 @@ SQL
           data = {}
         end
 
-        type = data['type'] || ''
+        type = data.delete('type')
+        if type == nil || type.empty?
+          type = row[:id].split(/\./, 2)[0]
+        end
 
         attributes = {
           :status => status,
