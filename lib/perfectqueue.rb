@@ -40,6 +40,7 @@ module PerfectQueue
     :TaskStatus => 'perfectqueue/task_status',
     :Worker => 'perfectqueue/worker',
     :SignalQueue => 'perfectqueue/signal_queue',
+    :VERSION => 'perfectqueue/version',
   }.each_pair {|k,v|
     autoload k, File.expand_path(v, File.dirname(__FILE__))
   }

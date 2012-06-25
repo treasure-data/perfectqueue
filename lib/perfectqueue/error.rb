@@ -62,6 +62,8 @@ module PerfectQueue
     include IdempotentError
   end
 
-
+  class IdempotentNotFoundError < NotFoundError
+    include IdempotentError
+  end
 end
 
