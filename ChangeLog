@@ -1,4 +1,18 @@
 
+== 2012-06-25 version 0.8.1
+
+* Added autoload for PerfectQueue::VERSION
+* Fixed backward compatiblity of the 'type' field in rdb_compat backend
+* Added IdempotentAlreadyFinishedError and IdempotentAlreadyExistsError
+  which should be ignored for idempotency
+
+
+== 2012-05-23 version 0.8.0
+
+* New major version
+* Redesigned API
+
+
 == 2012-01-24 version 0.7.20
 
 * Fixed MonitorThread
