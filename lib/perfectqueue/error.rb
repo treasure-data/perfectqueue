@@ -49,5 +49,19 @@ module PerfectQueue
 
   class GracefulProcessStopError < ProcessStopError
   end
+
+  # Applications can ignore these errors to achieve idempotency
+  module IdempotentError
+  end
+
+  class IdempotentAlreadyFinishedError < AlreadyFinishedError
+    include IdempotentError
+  end
+
+  class IdempotentAlreadyExistsError < AlreadyExistsError
+    include IdempotentError
+  end
+
+
 end
 

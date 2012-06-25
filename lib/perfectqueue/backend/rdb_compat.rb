@@ -124,7 +124,7 @@ SQL
         run_at = (options[:run_at] || now).to_i
         user = options[:user]
         priority = options[:priority]  # not supported
-        data ||= {}
+        data = data ? data.dup : {}
         data['type'] = type
 
         connect {
@@ -132,7 +132,7 @@ SQL
             n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at, resource) VALUES (?, ?, ?, ?, ?);", key, run_at, data.to_json, now, user].insert
             return Task.new(@client, key)
           rescue Sequel::DatabaseError
-            raise AlreadyExistsError, "task key=#{key} already exists"
+            raise IdempotentAlreadyExistsError, "task key=#{key} already exists"
           end
         }
       end
@@ -198,7 +198,7 @@ SQL
         connect {
           n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL;", delete_timeout, key].update
           if n <= 0
-            raise AlreadyFinishedError, "task key=#{key} does not exist or already finished."
+            raise IdempotentAlreadyFinishedError, "task key=#{key} does not exist or already finished."
           end
         }
         nil
@@ -272,10 +272,15 @@ SQL
           status = TaskStatus::RUNNING
         end
 
-        begin
-          data = JSON.parse(row[:data] || '{}')
-        rescue
+        d = row[:data]
+        if d == nil || d == ''
           data = {}
+        else
+          begin
+            data = JSON.parse(d)
+          rescue
+            data = {}
+          end
         end
 
         type = data.delete('type')
