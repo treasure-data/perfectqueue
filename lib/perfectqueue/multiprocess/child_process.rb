@@ -27,6 +27,7 @@ module PerfectQueue
       def initialize(runner, config, wpipe)
         @wpipe = wpipe
         @wpipe.sync = true
+        @request_per_child = 0
         super(runner, config)
         @sig = install_signal_handlers
       end
@@ -65,6 +66,22 @@ module PerfectQueue
       end
 
       HEARTBEAT_PACKET = [0].pack('C')
+
+      # override
+      def restart(immediate, config)
+        @max_request_per_child = config[:max_request_per_child] || nil
+        super
+      end
+
+      def process(task)
+        super
+        if @max_request_per_child
+          @request_per_child += 1
+          if @request_per_child > @max_request_per_child
+            stop(false)
+          end
+        end
+      end
 
       private
       def install_signal_handlers
