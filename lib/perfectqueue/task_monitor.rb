@@ -115,19 +115,20 @@ module PerfectQueue
             next_task_heartbeat = @last_task_heartbeat + @task_heartbeat_interval
             next_time = [next_child_heartbeat, next_task_heartbeat].min
           else
+            next_task_heartbeat = nil
             next_time = next_child_heartbeat
           end
 
-          next_wait = [1, next_time - now].max
-          @cond.wait(next_wait) if next_wait > 0  # TODO timeout doesn't work?
+          next_wait = next_time - now
+          @cond.wait(next_wait) if next_wait > 0
 
           now = Time.now.to_i
-          if @task && next_task_heartbeat && now <= next_task_heartbeat
+          if @task && next_task_heartbeat && next_task_heartbeat <= now
             task_heartbeat
             @last_task_heartbeat = now
           end
 
-          if now <= next_child_heartbeat
+          if next_child_heartbeat <= now
             @child_heartbeat.call  # will recursive lock
             @last_child_heartbeat = now
           end
