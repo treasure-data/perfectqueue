@@ -30,7 +30,7 @@ module PerfectQueue
         when Regexp
           # ok
         when String, Symbol
-          pattern = /#{Regexp.escape(pattern)}/
+          pattern = /\A#{Regexp.escape(pattern)}\z/
         else
           raise ArguementError, "pattern should be String or Regexp but got #{pattern.class}: #{pattern.inspect}"
         end
