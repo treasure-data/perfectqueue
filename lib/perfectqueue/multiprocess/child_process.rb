@@ -32,11 +32,13 @@ module PerfectQueue
         @sig = install_signal_handlers
       end
 
+      # override
       def run
         super
         @sig.shutdown
       end
 
+      # override
       def stop(immediate)
         @log.info "Exiting worker pid=#{Process.pid}"
         super
@@ -52,10 +54,12 @@ module PerfectQueue
         # do nothing
       end
 
+      # override
       def logrotated
         @log.reopen!
       end
 
+      # override
       def child_heartbeat
         @wpipe.write HEARTBEAT_PACKET
       rescue
@@ -73,6 +77,7 @@ module PerfectQueue
         super
       end
 
+      # override
       def process(task)
         super
         if @max_request_per_child
@@ -116,6 +121,8 @@ module PerfectQueue
           sig.trap :USR2 do
             logrotated
           end
+
+          trap :CHLD, "SIG_DFL"
         end
       end
     end

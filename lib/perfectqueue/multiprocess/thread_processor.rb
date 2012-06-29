@@ -94,7 +94,7 @@ module PerfectQueue
           end
         }
       rescue
-        @log.error "Unknown error #{$!.class}: #{$!}. Exiting worker pid=#{Process.pid}"
+        @log.error "Unknown error #{$!.class}: #{$!}: Exiting worker pid=#{Process.pid}"
         $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
       ensure
         @tm.stop

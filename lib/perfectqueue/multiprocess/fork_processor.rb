@@ -68,7 +68,7 @@ module PerfectQueue
             @log.error "Heartbeat pipe is closed. Restarting child process."
             c.start_killing(true)
           rescue
-            @log.error "Unknown error: #{$!.class}: #{$!}. Restarting child process."
+            @log.error "Unknown error: #{$!.class}: #{$!}: Restarting child process."
             $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
             c.start_killing(false)
           end
