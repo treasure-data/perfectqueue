@@ -1,4 +1,14 @@
 
+== 2012-06-29 version 0.8.2
+
+* 'process' type multiprocessor supports max_request_per_child option
+* rdb_compat: heartbeat assumes UPDATE suceeded if 'timeout' is not changed
+in case it was called within 1 second
+* Child process ignores SIGCHLD
+* Fixed Router not to match 'x' routing pattern with 'xy'
+* Fixed child/task heartbeat timing calculation
+
+
 == 2012-06-25 version 0.8.1
 
 * Added autoload for PerfectQueue::VERSION
