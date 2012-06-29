@@ -213,12 +213,15 @@ SQL
         connect {
           n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND created_at IS NOT NULL;", next_timeout, key].update
           if n <= 0
-            row = @db.fetch("SELECT id, created_at FROM `#{@table}` WHERE id=? LIMIT 1", key).first
+            row = @db.fetch("SELECT id, timeout, created_at FROM `#{@table}` WHERE id=? LIMIT 1", key).first
             if row == nil
-              raise AlreadyFinishedError, "task key=#{key} already finished."
+              raise AlreadyFinishedError, "task key=#{key} does not exist or already finished."
             elsif row[:created_at] == -1
               raise CancelRequestedError, "task key=#{key} is cancel requested."
+            elsif row[:timeout] == next_timeout
+              # ok
             else
+              # row[:created_at] == null
               raise AlreadyFinishedError, "task key=#{key} already finished."
             end
           end
