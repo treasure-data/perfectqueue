@@ -42,32 +42,9 @@ module PerfectQueue
       end
 
       # DSL interface
-      class << self
-        def route(options)
-          patterns = options.keys.select {|k| !k.is_a?(Symbol) }
-          klasses = patterns.map {|k| options.delete(k) }
-          patterns.zip(klasses).each {|pattern,sym|
-            add_route(pattern, sym, options)
-          }
-          nil
-        end
-
-        def add_route(pattern, klass, options)
-          router.add(pattern, klass, options)
-        end
-
-        def router=(router)
-          (class<<self;self;end).instance_eval do
-            self.__send__(:define_method, :router) { router }
-          end
-          router
-        end
-
-        def router
-          self.router = Router.new
-        end
-      end
+      extend RouterDSL
     end
+
   end
 end
 
