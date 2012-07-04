@@ -215,14 +215,14 @@ SQL
           if n <= 0
             row = @db.fetch("SELECT id, timeout, created_at FROM `#{@table}` WHERE id=? LIMIT 1", key).first
             if row == nil
-              raise AlreadyFinishedError, "task key=#{key} does not exist or already finished."
+              raise PreemptedError, "task key=#{key} does not exist or preempted."
             elsif row[:created_at] == -1
               raise CancelRequestedError, "task key=#{key} is cancel requested."
             elsif row[:timeout] == next_timeout
               # ok
             else
               # row[:created_at] == null
-              raise AlreadyFinishedError, "task key=#{key} already finished."
+              raise PreemptedError, "task key=#{key} preempted."
             end
           end
         }
