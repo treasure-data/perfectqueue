@@ -41,7 +41,7 @@ module PerfectQueue
         rescue NameError
           raise UndefinedDecisionError, "Undefined decision #{type} options=#{opt.inspect}"
         end
-        m.call(type, opts)
+        m.call(opts)
       end
     end
 
