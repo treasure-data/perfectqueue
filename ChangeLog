@@ -1,4 +1,9 @@
 
+== 2012-07-06 version 0.8.4
+
+* Introduced PerfectQueue::Application::Decider
+
+
 == 2012-07-03 version 0.8.3
 
 * Fixed rdb_compat to raise PreemptedError
