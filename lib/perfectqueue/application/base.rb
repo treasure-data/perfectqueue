@@ -20,6 +20,50 @@ module PerfectQueue
   module Application
 
     class Base < Runner
+      def self.decider
+        DefaultDecider
+      end
+
+      def self.decider=(decider_klass)
+        (class<<self;self;end).instance_eval do
+          self.__send__(:define_method, :decider) { decider_klass }
+        end
+        decider_klass
+      end
+
+      def initialize(task)
+        super
+        @decider = self.class.decider.new(self)
+      end
+
+      attr_reader :decider
+
+      def run
+        begin
+          return unless before_perform
+          begin
+            perform
+          ensure
+            after_perform
+          end
+        rescue
+          decide! :unexpected_error_raised, :error=>$!
+        end
+      end
+
+      def before_perform
+        true
+      end
+
+      #def perform
+      #end
+
+      def after_perform
+      end
+
+      def decide!(type, option={})
+        @decider.decide!(type, option)
+      end
     end
 
   end
