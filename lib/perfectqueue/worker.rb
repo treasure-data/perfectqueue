@@ -35,6 +35,8 @@ module PerfectQueue
     end
 
     def run
+      @log.info "PerfectQueue #{VERSION}"
+
       @sig = install_signal_handlers
       begin
         @engine = Engine.new(@runner, load_config)
