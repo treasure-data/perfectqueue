@@ -26,7 +26,7 @@ module PerfectQueue
       @stderr_hook = false
       if dev.is_a?(String)
         @path = dev
-        @io = File.open(dev, File::WRONLY|File::APPEND)
+        @io = File.open(@path, File::WRONLY|File::APPEND|File::CREAT)
       else
         @io = dev
       end
