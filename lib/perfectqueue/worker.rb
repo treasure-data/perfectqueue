@@ -37,17 +37,15 @@ module PerfectQueue
     def run
       @log.info "PerfectQueue #{VERSION}"
 
-      @sig = install_signal_handlers
-      begin
+      install_signal_handlers do
         @engine = Engine.new(@runner, load_config)
         begin
           @engine.run
         ensure
           @engine.shutdown(true)
         end
-      ensure
-        @sig.shutdown
       end
+
       return nil
     rescue
       @log.error "#{$!.class}: #{$!}"
@@ -114,8 +112,8 @@ module PerfectQueue
       return config
     end
 
-    def install_signal_handlers
-      SignalQueue.start do |sig|
+    def install_signal_handlers(&block)
+      sig = SignalQueue.start do |sig|
         sig.trap :TERM do
           stop(false)
         end
@@ -148,6 +146,12 @@ module PerfectQueue
         end
 
         trap :CHLD, "SIG_IGN"
+      end
+
+      begin
+        block.call
+      rescue
+        sig.close
       end
     end
   end
