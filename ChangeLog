@@ -1,4 +1,9 @@
 
+== 2012-07-19 version 0.7.21
+
+* Added max_running column for fair resource restriction
+
+
 == 2012-01-24 version 0.7.20
 
 * Fixed MonitorThread
