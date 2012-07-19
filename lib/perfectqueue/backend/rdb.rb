@@ -23,7 +23,7 @@ LEFT JOIN (
   WHERE timeout > ? AND created_at IS NOT NULL AND resource IS NOT NULL
   GROUP BY resource
 ) AS R ON resource = res
-WHERE timeout <= ? AND (runnable IS NULL OR runnable > 0)
+WHERE timeout <= ? AND (max_running-running IS NULL OR max_running-running > 0)
 ORDER BY runnable IS NOT NULL, runnable DESC, timeout ASC
 LIMIT #{MAX_SELECT_ROW}
 SQL
