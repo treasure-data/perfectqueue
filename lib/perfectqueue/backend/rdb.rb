@@ -15,7 +15,7 @@ class RDBBackend < Backend
       # connection test
     }
     @sql = <<SQL
-SELECT id, timeout, data, created_at, resource
+SELECT id, timeout, data, created_at, resource, max_running-running AS runnable
 FROM `#{@table}`
 LEFT JOIN (
   SELECT resource AS res, COUNT(1) AS running
@@ -23,8 +23,9 @@ LEFT JOIN (
   WHERE timeout > ? AND created_at IS NOT NULL AND resource IS NOT NULL
   GROUP BY resource
 ) AS R ON resource = res
-WHERE timeout <= ? AND (running IS NULL OR running < #{MAX_RESOURCE})
-ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW}
+WHERE timeout <= ? AND (runnable IS NULL OR runnable > 0)
+ORDER BY runnable IS NOT NULL, runnable DESC, timeout ASC
+LIMIT #{MAX_SELECT_ROW}
 SQL
     # sqlite doesn't support SELECT ... FOR UPDATE but
     # sqlite doesn't need it because the db is not shared
@@ -41,6 +42,7 @@ SQL
     sql << "  data BLOB NOT NULL,"
     sql << "  created_at INT,"
     sql << "  resource VARCHAR(256),"
+    sql << "  max_running INT,"
     sql << "  PRIMARY KEY (id)"
     sql << ");"
     # TODO index
@@ -88,7 +90,6 @@ SQL
   end
 
   MAX_SELECT_ROW = 8
-  MAX_RESOURCE = (ENV['PQ_MAX_RESOURCE'] || 4).to_i
   #KEEPALIVE = 10
   MAX_RETRY = 10
 
@@ -140,10 +141,10 @@ SQL
     finish(id, delete_timeout, now)
   end
 
-  def submit(id, data, time=Time.now.to_i, resource=nil)
+  def submit(id, data, time=Time.now.to_i, resource=nil, max_running=nil)
     connect {
       begin
-        n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at, resource) VALUES (?, ?, ?, ?, ?);", id, time, data, time, resource].insert
+        n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?);", id, time, data, time, resource, max_running].insert
         return true
       rescue Sequel::DatabaseError
         return nil

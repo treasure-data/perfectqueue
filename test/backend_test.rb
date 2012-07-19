@@ -223,24 +223,27 @@ class BackendTest < Test::Unit::TestCase
 
     time = Time.now.to_i
 
-    5.times do |i|
-      ok = db1.submit(@key_prefix+'test'+i.to_s, 'data1', time-i, 'user1')
+    3.times do |i|
+      ok = db1.submit(@key_prefix+'test'+i.to_s, 'data1', time-(i+1), 'user1', 2)
       assert_equal true, ok
     end
-    ok = db1.submit(@key_prefix+'test5', 'data2', time, 'user2')
+    ok = db1.submit(@key_prefix+'test5', 'data2', time, 'user2', 2)
     assert_equal true, ok
 
     token_1 = nil
     task_1 = nil
-    4.times do
-      token_1, task_1 = db1.acquire(time+TIMEOUT, time)
-      assert_not_equal nil, task_1
-      assert_equal "user1", task_1.resource
-    end
+
+    token_1, task_1 = db1.acquire(time+TIMEOUT, time)
+    assert_not_equal nil, task_1
+    assert_equal "user1", task_1.resource
 
     token, task = db1.acquire(time+TIMEOUT, time)
     assert_not_equal nil, task
     assert_equal "user2", task.resource
+
+    token, task = db1.acquire(time+TIMEOUT, time)
+    assert_not_equal nil, task
+    assert_equal "user1", task.resource
 
     token, task = db1.acquire(time+TIMEOUT, time)
     assert_equal nil, task
