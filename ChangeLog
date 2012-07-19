@@ -1,4 +1,9 @@
 
+== 2012-07-19 version 0.7.22
+
+* Fixed RDBBackend SQL
+
+
 == 2012-07-19 version 0.7.21
 
 * Added max_running column for fair resource restriction
