@@ -31,7 +31,6 @@ module PerfectQueue
       @runner = runner
       block = Proc.new { config } if config
       @config_load_proc = block
-      @finished = false
     end
 
     def run
@@ -150,8 +149,8 @@ module PerfectQueue
 
       begin
         block.call
-      rescue
-        sig.close
+      ensure
+        sig.shutdown
       end
     end
   end
