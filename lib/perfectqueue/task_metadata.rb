@@ -78,6 +78,8 @@ module PerfectQueue
   end
 
   class TaskMetadata
+    include Model
+
     def initialize(client, key, attributes)
       super(client)
       @key = key

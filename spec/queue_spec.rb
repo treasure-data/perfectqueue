@@ -1,13 +1,7 @@
 require 'spec_helper'
 
 describe Queue do
-  let :queue do
-    create_test_queue
-  end
-
-  after do
-    queue.client.close
-  end
+  include QueueTest
 
   it 'is a Queue' do
     queue.class.should == PerfectQueue::Queue

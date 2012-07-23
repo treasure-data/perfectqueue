@@ -43,8 +43,8 @@ module PerfectQueue
           # connection test
         }
 
-        @sql = <<SQL
-SELECT id, timeout, data, created_at, resource
+    @sql = <<SQL
+SELECT id, timeout, data, created_at, resource, max_running-running AS runnable
 FROM `#{@table}`
 LEFT JOIN (
   SELECT resource AS res, COUNT(1) AS running
@@ -52,8 +52,9 @@ LEFT JOIN (
   WHERE timeout > ? AND created_at IS NOT NULL AND resource IS NOT NULL
   GROUP BY resource
 ) AS R ON resource = res
-WHERE timeout <= ? AND (running IS NULL OR running < #{MAX_RESOURCE})
-ORDER BY timeout ASC LIMIT #{MAX_SELECT_ROW}
+WHERE timeout <= ? AND (max_running-running IS NULL OR max_running-running > 0)
+ORDER BY runnable IS NOT NULL, runnable DESC, timeout ASC
+LIMIT #{MAX_SELECT_ROW}
 SQL
 
         # sqlite doesn't support SELECT ... FOR UPDATE but
@@ -78,6 +79,7 @@ SQL
               data BLOB NOT NULL,
               created_at INT,
               resource VARCHAR(256),
+              max_running INT,
               PRIMARY KEY (id)
             );]
         connect {
@@ -122,14 +124,17 @@ SQL
       def submit(key, type, data, options)
         now = (options[:now] || Time.now).to_i
         run_at = (options[:run_at] || now).to_i
-        user = options[:user]
-        priority = options[:priority]  # not supported
+        user = options[:user].to_s
+        max_running = options[:max_running]
         data = data ? data.dup : {}
         data['type'] = type
 
         connect {
           begin
-            n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at, resource) VALUES (?, ?, ?, ?, ?);", key, run_at, data.to_json, now, user].insert
+            n = @db[
+              "INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?);",
+              key, run_at, data.to_json, now, user, max_running
+            ].insert
             return Task.new(@client, key)
           rescue Sequel::DatabaseError
             raise IdempotentAlreadyExistsError, "task key=#{key} already exists"

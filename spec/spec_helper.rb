@@ -13,32 +13,38 @@ end
 
 require 'fileutils'
 
-def test_queue_config
-  {:type=>'rdb_compat', :url=>'sqlite://spec/test.db', :table=>'test_tasks', :processor_type=>'thread'}
+module QueueTest
+  def self.included(mod)
+    mod.module_eval do
+      let :database_path do
+        'spec/test.db'
+      end
+
+      let :queue_config do
+        {
+          :type => 'rdb_compat',
+          :url => "sqlite://#{database_path}",
+          :table => 'test_tasks',
+          :processor_type => 'thread'
+        }
+      end
+
+      let :queue do
+        PerfectQueue.open(queue_config)
+      end
+
+      before do
+        FileUtils.rm_f database_path
+        queue.client.init_database
+      end
+
+      after do
+        queue.close
+      end
+    end
+  end
 end
 
-def create_test_queue
-  FileUtils.rm_f 'spec/test.db'
-  queue = PerfectQueue.open(test_queue_config)
-
-  sql = %[
-      CREATE TABLE IF NOT EXISTS `test_tasks` (
-        id VARCHAR(256) NOT NULL,
-        timeout INT NOT NULL,
-        data BLOB NOT NULL,
-        created_at INT,
-        resource VARCHAR(256),
-        PRIMARY KEY (id)
-      );]
-
-  queue.client.backend.db.run sql
-
-  return queue
-end
-
-def get_test_queue
-  PerfectQueue.open(test_queue_config)
-end
 
 include PerfectQueue
 

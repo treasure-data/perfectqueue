@@ -29,9 +29,10 @@ class TestApp < PerfectQueue::Application::Dispatch
 end
 
 describe Worker do
+  include QueueTest
+
   before do
-    create_test_queue.close
-    @worker = Worker.new(TestApp, test_queue_config)
+    @worker = Worker.new(TestApp, queue_config)
     @thread = Thread.new {
       @worker.run
     }
@@ -42,17 +43,11 @@ describe Worker do
     @thread.join
   end
 
-  def submit(*args)
-    queue = get_test_queue
-    queue.submit(*args)
-    queue.close
-  end
-
   it 'route' do
     TestHandler.any_instance.should_receive(:run).once
     RegexpHandler.any_instance.should_receive(:run).once
-    submit('task01', 'test', {})
-    submit('task02', 'reg01', {})
+    queue.submit('task01', 'test', {})
+    queue.submit('task02', 'reg01', {})
     sleep 1
   end
 
@@ -72,7 +67,7 @@ describe Worker do
 
   it 'kill reason' do
     TestHandler.any_instance.should_receive(:kill).once #.with(kind_of(PerfectQueue::CancelRequestedError))  # FIXME 'with' dead locks
-    submit('task01', 'test', {'sleep'=>4})
+    queue.submit('task01', 'test', {'sleep'=>4})
     sleep 2
     Process.kill(:TERM, Process.pid)
     @thread.join
