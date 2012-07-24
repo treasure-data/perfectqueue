@@ -1,4 +1,11 @@
 
+== 2012-07-23 version 0.8.6
+
+* rdb_backend supports 'max_running' which is added in v0.7.21
+* Fixed DaemonsLogger to use File::CREAT flag to open a file
+* Show version when worker starts
+
+
 == 2012-07-06 version 0.8.5
 
 * Introduced PerfectQueue::Application::Decider
@@ -32,6 +39,16 @@ in case it was called within 1 second
 
 * New major version
 * Redesigned API
+
+
+== 2012-07-19 version 0.7.22
+
+* Fixed RDBBackend SQL
+
+
+== 2012-07-19 version 0.7.21
+
+* Added max_running column for fair resource restriction
 
 
 == 2012-01-24 version 0.7.20
