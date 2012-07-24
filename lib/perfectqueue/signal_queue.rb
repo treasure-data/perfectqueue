@@ -95,7 +95,7 @@ module PerfectQueue
 
     private
     def enqueue(sig)
-      if Thread.current == self
+      if Thread.current == @thread
         @queue << sig
         if @mutex.locked?
           @cond.signal
