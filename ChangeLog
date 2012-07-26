@@ -1,4 +1,10 @@
 
+== 2012-07-26 version 0.8.8
+
+* Use PWR instead of EMT signal which is not supported by ruby
+* Fixed processor_id routine
+
+
 == 2012-07-26 version 0.8.7
 
 * Worker process changes process name ($0)
