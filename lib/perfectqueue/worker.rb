@@ -132,11 +132,11 @@ module PerfectQueue
           restart(true)
         end
 
-        sig.trap :CONT do
+        sig.trap :WINCH do
           replace(false)
         end
 
-        sig.trap :WINCH do
+        sig.trap :EMT do
           replace(true)
         end
 

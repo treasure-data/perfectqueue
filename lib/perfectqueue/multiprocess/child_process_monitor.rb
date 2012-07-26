@@ -95,7 +95,7 @@ module PerfectQueue
             @log.debug "sending SIGKILL to pid=#{@pid} for immediate stop"
             Process.kill(:KILL, @pid)
           else
-            @log.debug "sending SIGUSR1 to pid=#{@pid} for graceful stop"
+            @log.debug "sending SIGTERM to pid=#{@pid} for graceful stop"
             Process.kill(:TERM, @pid)
           end
         rescue Errno::ESRCH, Errno::EPERM

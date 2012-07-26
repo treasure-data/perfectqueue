@@ -146,8 +146,8 @@ PerfectQueue::Worker.run(Dispatch) {
 - **QUIT:** immediate shutdown
 - **USR1:** graceful restart
 - **HUP:** immediate restart
-- **WINCH:** immediate binary replace
-- **CONT:** graceful binary replace
+- **EMT:** immediate binary replace
+- **WINCH:** graceful binary replace
 - **USR2:** reopen log files
 
 ## Configuration
