@@ -1,4 +1,11 @@
 
+== 2012-07-26 version 0.8.7
+
+* Worker process changes process name ($0)
+* Use EMT instead of WINCH signal for immediate binary replace
+* Use WINCH instead of CONT signal for graceful binary replace
+
+
 == 2012-07-23 version 0.8.6
 
 * rdb_backend supports 'max_running' which is added in v0.7.21
