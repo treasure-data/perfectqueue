@@ -51,7 +51,7 @@ module PerfectQueue
       extra = num_processors - @processors.length
       if extra > 0
         extra.times do
-          @processors << @processor_class.new(@runner, config)
+          @processors << @processor_class.new(@runner, @processors.size+1, config)
         end
       elsif extra < 0
         -extra.times do

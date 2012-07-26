@@ -24,11 +24,11 @@ module PerfectQueue
         new(runner, config, wpipe).run
       end
 
-      def initialize(runner, config, wpipe)
+      def initialize(runner, processor_id, config, wpipe)
         @wpipe = wpipe
         @wpipe.sync = true
         @request_per_child = 0
-        super(runner, config)
+        super(runner, processor_id, config)
         @sig = install_signal_handlers
       end
 

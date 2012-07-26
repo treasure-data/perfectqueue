@@ -20,8 +20,9 @@ module PerfectQueue
   module Multiprocess
 
     class ForkProcessor
-      def initialize(runner, config)
+      def initialize(runner, processor_id, config)
         @runner = runner
+        @processor_id = processor_id
 
         require 'fcntl'
         @stop = false
@@ -124,6 +125,9 @@ module PerfectQueue
       INTER_FORK_LOCK = Mutex.new
 
       def fork_child
+        # set process name
+        $0 = "perfectqueue:#{@runner} #{@processor_id}"
+
         @runner.before_fork if @runner.respond_to?(:before_fork)  # TODO exception handling
 
         INTER_FORK_LOCK.lock

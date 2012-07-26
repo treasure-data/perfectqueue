@@ -20,8 +20,9 @@ module PerfectQueue
   module Multiprocess
 
     class ThreadProcessor
-      def initialize(runner, config)
+      def initialize(runner, processor_id, config)
         @runner = runner
+        @processor_id = processor_id
 
         @running_flag = BlockingFlag.new
         @finish_flag = BlockingFlag.new
