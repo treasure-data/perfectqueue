@@ -126,8 +126,6 @@ module PerfectQueue
 
       def fork_child
         # set process name
-        $0 = "perfectqueue:#{@runner} #{@processor_id}"
-
         @runner.before_fork if @runner.respond_to?(:before_fork)  # TODO exception handling
 
         INTER_FORK_LOCK.lock
@@ -145,10 +143,12 @@ module PerfectQueue
           # pass-through STDERR
           rpipe.close
 
+          $0 = "perfectqueue:#{@runner} #{@processor_id}"
+
           @runner.after_fork if @runner.respond_to?(:after_fork)
 
           begin
-            ChildProcess.run(@runner, @config, wpipe)
+            ChildProcess.run(@runner, @processor_id, @config, wpipe)
           ensure
             @runner.after_child_end if @runner.respond_to?(:after_child_end)  # TODO exception handling
           end

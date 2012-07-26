@@ -20,8 +20,8 @@ module PerfectQueue
   module Multiprocess
 
     class ChildProcess < ThreadProcessor
-      def self.run(runner, config, wpipe)
-        new(runner, config, wpipe).run
+      def self.run(runner, processor_id, config, wpipe)
+        new(runner, processor_id, config, wpipe).run
       end
 
       def initialize(runner, processor_id, config, wpipe)
