@@ -136,7 +136,7 @@ module PerfectQueue
           replace(false)
         end
 
-        sig.trap :EMT do
+        sig.trap :PWR do
           replace(true)
         end
 
