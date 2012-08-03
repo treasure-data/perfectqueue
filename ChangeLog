@@ -1,4 +1,10 @@
 
+== 2012-08-03 version 0.8.9
+
+* Use free slot ratio instead of free slot amount to decide task priorities
+* Disable immediate binary replace on platforms which doesn't support SIGPWR
+
+
 == 2012-07-26 version 0.8.8
 
 * Use PWR instead of EMT signal which is not supported by ruby
