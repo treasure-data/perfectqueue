@@ -132,12 +132,20 @@ module PerfectQueue
           restart(true)
         end
 
-        sig.trap :WINCH do
-          replace(false)
+        begin
+          sig.trap :WINCH do
+            replace(false)
+          end
+        rescue
+          # FIXME some platforms might not support SIGWINCH
         end
 
-        sig.trap :PWR do
-          replace(true)
+        begin
+          sig.trap :PWR do
+            replace(true)
+          end
+        rescue
+          # FIXME some platforms might not support SIGPWR (such as Darwin)
         end
 
         sig.trap :USR2 do
