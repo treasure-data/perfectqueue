@@ -124,7 +124,8 @@ SQL
       def submit(key, type, data, options)
         now = (options[:now] || Time.now).to_i
         run_at = (options[:run_at] || now).to_i
-        user = options[:user].to_s
+        user = options[:user]
+        user = user.to_s if user
         max_running = options[:max_running]
         data = data ? data.dup : {}
         data['type'] = type
