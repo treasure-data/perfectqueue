@@ -1,4 +1,9 @@
 
+== 2012-08-03 version 0.7.23
+
+* Use free slot ratio instead of free slot amount to decide task priorities
+
+
 == 2012-07-19 version 0.7.22
 
 * Fixed RDBBackend SQL
