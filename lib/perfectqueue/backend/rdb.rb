@@ -15,7 +15,7 @@ class RDBBackend < Backend
       # connection test
     }
     @sql = <<SQL
-SELECT id, timeout, data, created_at, resource, max_running-running AS runnable
+SELECT id, timeout, data, created_at, resource, max_running/running AS weight
 FROM `#{@table}`
 LEFT JOIN (
   SELECT resource AS res, COUNT(1) AS running
@@ -24,7 +24,7 @@ LEFT JOIN (
   GROUP BY resource
 ) AS R ON resource = res
 WHERE timeout <= ? AND (max_running-running IS NULL OR max_running-running > 0)
-ORDER BY runnable IS NOT NULL, runnable DESC, timeout ASC
+ORDER BY weight IS NOT NULL, weight DESC, timeout ASC
 LIMIT #{MAX_SELECT_ROW}
 SQL
     # sqlite doesn't support SELECT ... FOR UPDATE but
