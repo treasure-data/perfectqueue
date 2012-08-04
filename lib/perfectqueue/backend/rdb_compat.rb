@@ -44,7 +44,7 @@ module PerfectQueue
         }
 
     @sql = <<SQL
-SELECT id, timeout, data, created_at, resource, max_running/running AS weight
+SELECT id, timeout, data, created_at, resource, max_running, max_running/running AS weight
 FROM `#{@table}`
 LEFT JOIN (
   SELECT resource AS res, COUNT(1) AS running
@@ -92,7 +92,7 @@ SQL
         now = (options[:now] || Time.now).to_i
 
         connect {
-          row = @db.fetch("SELECT timeout, data, created_at, resource FROM `#{@table}` WHERE id=? LIMIT 1", key).first
+          row = @db.fetch("SELECT timeout, data, created_at, resource, max_running FROM `#{@table}` WHERE id=? LIMIT 1", key).first
           unless row
             raise NotFoundError, "task key=#{key} does no exist"
           end
@@ -112,7 +112,7 @@ SQL
 
         connect {
           #@db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` WHERE !(created_at IS NULL AND timeout <= ?) ORDER BY timeout ASC;", now) {|row|
-          @db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` ORDER BY timeout ASC;", now) {|row|
+          @db.fetch("SELECT id, timeout, data, created_at, resource, max_running FROM `#{@table}` ORDER BY timeout ASC;", now) {|row|
             attributes = create_attributes(now, row)
             task = TaskWithMetadata.new(@client, row[:id], attributes)
             yield task
@@ -304,6 +304,7 @@ SQL
           :type => type,
           :user => row[:resource],
           :timeout => row[:timeout],
+          :max_running => row[:max_running],
           :message => nil,  # not supported
           :node => nil,  # not supported
         }
