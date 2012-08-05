@@ -27,6 +27,7 @@ module PerfectQueue
         require 'fcntl'
         @stop = false
         @cpm = nil
+        @last_fork_time = 0
 
         restart(false, config)
       end
@@ -35,6 +36,7 @@ module PerfectQueue
         @child_heartbeat_limit = config[:child_heartbeat_limit] || 10.0
         @child_kill_interval = config[:child_kill_interval] || 2.0
         @child_graceful_kill_limit = config[:child_graceful_kill_limit] || nil
+        @child_fork_frequency_limit = config[:child_fork_frequency_limit] || 5.0
         @log = config[:logger]
         @config = config  # for child process
 
@@ -125,6 +127,13 @@ module PerfectQueue
       INTER_FORK_LOCK = Mutex.new
 
       def fork_child
+        now = Time.now.to_f
+        if now - @last_fork_time < @child_fork_frequency_limit
+          @log.info "Tried to fork child #{now-@last_fork_time} seconds ago < #{@child_fork_frequency_limit}. Waiting..."
+          return nil
+        end
+        @last_fork_time = now
+
         # set process name
         @runner.before_fork if @runner.respond_to?(:before_fork)  # TODO exception handling
 
