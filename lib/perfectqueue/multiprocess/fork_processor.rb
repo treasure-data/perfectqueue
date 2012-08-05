@@ -60,21 +60,23 @@ module PerfectQueue
         end
 
         if c = @cpm
-          # don't check status if killing status is immediate-killing
-          begin
-            # receive heartbeat
-            keptalive = c.check_heartbeat(@child_heartbeat_limit)
-            if !keptalive
-              @log.error "Heartbeat broke out. Restarting child process id=#{@processor_id} pid=#{c.pid}."
+          if c.killing_status != true
+            # don't check status if killing status is immediate-killing
+            begin
+              # receive heartbeat
+              keptalive = c.check_heartbeat(@child_heartbeat_limit)
+              if !keptalive
+                @log.error "Heartbeat broke out. Restarting child process id=#{@processor_id} pid=#{c.pid}."
+                c.start_killing(true)
+              end
+            rescue EOFError
+              @log.error "Heartbeat pipe is closed. Restarting child process id=#{@processor_id} pid=#{c.pid}."
               c.start_killing(true)
+            rescue
+              @log.error "Unknown error: #{$!.class}: #{$!}: Restarting child process id=#{@processor_id} pid=#{c.pid}."
+              $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
+              c.start_killing(false)
             end
-          rescue EOFError
-            @log.error "Heartbeat pipe is closed. Restarting child process id=#{@processor_id} pid=#{c.pid}."
-            c.start_killing(true)
-          rescue
-            @log.error "Unknown error: #{$!.class}: #{$!}: Restarting child process id=#{@processor_id} pid=#{c.pid}."
-            $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
-            c.start_killing(false)
           end
 
           try_join

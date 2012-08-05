@@ -55,6 +55,18 @@ module PerfectQueue
         @kill_start_time = now
       end
 
+      def killing_status
+        if @kill_start_time
+          if @kill_immediate
+            return true
+          else
+            return false
+          end
+        else
+          return nil
+        end
+      end
+
       def try_join(kill_interval, graceful_kill_limit)
         return nil unless @kill_start_time
 
