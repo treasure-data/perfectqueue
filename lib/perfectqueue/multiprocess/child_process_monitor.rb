@@ -33,6 +33,8 @@ module PerfectQueue
         @rbuf = ''
       end
 
+      attr_reader :pid
+
       def check_heartbeat(limit)
         @rpipe.read_nonblock(1024, @rbuf)
         @last_heartbeat = Time.now.to_i

@@ -60,18 +60,19 @@ module PerfectQueue
         end
 
         if c = @cpm
+          # don't check status if killing status is immediate-killing
           begin
             # receive heartbeat
             keptalive = c.check_heartbeat(@child_heartbeat_limit)
-            unless keptalive
-              @log.error "Heartbeat broke out. Restarting child process."
-              c.start_killing(false)
+            if !keptalive
+              @log.error "Heartbeat broke out. Restarting child process id=#{@processor_id} pid=#{c.pid}."
+              c.start_killing(true)
             end
           rescue EOFError
-            @log.error "Heartbeat pipe is closed. Restarting child process."
+            @log.error "Heartbeat pipe is closed. Restarting child process id=#{@processor_id} pid=#{c.pid}."
             c.start_killing(true)
           rescue
-            @log.error "Unknown error: #{$!.class}: #{$!}: Restarting child process."
+            @log.error "Unknown error: #{$!.class}: #{$!}: Restarting child process id=#{@processor_id} pid=#{c.pid}."
             $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
             c.start_killing(false)
           end
@@ -83,7 +84,7 @@ module PerfectQueue
           begin
             @cpm = fork_child
           rescue
-            @log.error "Failed to fork child process: #{$!.class}: #{$!}"
+            @log.error "Failed to fork child process id=#{@processor_id}: #{$!.class}: #{$!}"
             $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
           end
         end
@@ -118,18 +119,12 @@ module PerfectQueue
         end
       end
 
-      def ensure_fork
-        unless @cpm
-          @cpm = fork_child
-        end
-      end
-
       INTER_FORK_LOCK = Mutex.new
 
       def fork_child
         now = Time.now.to_f
         if now - @last_fork_time < @child_fork_frequency_limit
-          @log.info "Tried to fork child #{now-@last_fork_time} seconds ago < #{@child_fork_frequency_limit}. Waiting..."
+          @log.info "Tried to fork child #{now-@last_fork_time} seconds ago < #{@child_fork_frequency_limit}. Waiting... id=#{@processor_id}"
           return nil
         end
         @last_fork_time = now
