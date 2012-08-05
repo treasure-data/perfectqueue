@@ -1,4 +1,11 @@
 
+== 2012-08-05 version 0.8.11
+
+* Support child_fork_frequency_limit option to wait before forking child
+* Error messages include processor id and pid
+* Don't check child process status if it's killing status is immediate-killing
+
+
 == 2012-08-04 version 0.8.10
 
 * rdb_backend returns max_running attribute
