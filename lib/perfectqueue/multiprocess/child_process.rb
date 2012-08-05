@@ -40,7 +40,7 @@ module PerfectQueue
 
       # override
       def stop(immediate)
-        @log.info "Exiting worker pid=#{Process.pid}"
+        @log.info "Exiting processor id=#{@processor_id} pid=#{Process.pid}"
         super
       end
 
@@ -63,7 +63,7 @@ module PerfectQueue
       def child_heartbeat
         @wpipe.write HEARTBEAT_PACKET
       rescue
-        @log.error "Parent process unexpectedly died. Exiting worker pid=#{Process.pid}: #{$!}"
+        @log.error "Parent process unexpectedly died. Exiting processor pid=#{Process.pid}: #{$!}"
         stop(true)
         Process.kill(:KILL, Process.pid)
         exit! 137

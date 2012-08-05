@@ -72,12 +72,12 @@ module PerfectQueue
 
         begin
           if Process.waitpid(@pid, Process::WNOHANG)
-            @log.info "Worker exited pid=#{@pid}"
+            @log.info "Processor exited pid=#{@pid}"
             return true
           end
         rescue Errno::ECHILD
-          # SIGCHLD is trapped in Worker#install_signal_handlers
-          @log.info "Worker exited pid=#{@pid}"
+          # SIGCHLD is trapped in Supervisor#install_signal_handlers
+          @log.info "Processor exited pid=#{@pid}"
           return true
         end
 

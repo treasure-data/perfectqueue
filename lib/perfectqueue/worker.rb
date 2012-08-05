@@ -24,100 +24,76 @@ module PerfectQueue
     end
 
     def initialize(runner, config=nil, &block)
-      # initial logger
-      STDERR.sync = true
-      @log = DaemonsLogger.new(STDERR)
-
-      @runner = runner
       block = Proc.new { config } if config
-      @config_load_proc = block
+      config = block.call
+
+      @config = config
+      @runner = runner
+
+      @detach_wait = config[:detach_wait] || config['detach_wait'] || 10.0
+
+      @sv = Supervisor.new(runner, &block)
+      @finish_flag = BlockingFlag.new
     end
 
     def run
-      @log.info "PerfectQueue #{VERSION}"
-
-      install_signal_handlers do
-        @engine = Engine.new(@runner, load_config)
-        begin
-          @engine.run
-        ensure
-          @engine.shutdown(true)
-        end
+      @pid = fork do
+        $0 = "perfectqueue-supervisor:#{@runner}"
+        @sv.run
+        exit! 0
       end
 
-      return nil
-    rescue
-      @log.error "#{$!.class}: #{$!}"
-      $!.backtrace.each {|x| @log.warn "\t#{x}" }
-      return nil
+      install_signal_handlers
+
+      begin
+        until @finish_flag.set?
+          pid, status = Process.waitpid2(@pid, Process::WNOHANG)
+          @finish_flag.wait(1)
+        end
+
+        unless pid
+          # child process is alive but detached
+          sleep @detach_wait
+        end
+
+      rescue Errno::ECHILD
+      end
     end
 
     def stop(immediate)
-      @log.info immediate ? "Received immediate stop" : "Received graceful stop"
-      begin
-        @engine.stop(immediate) if @engine
-      rescue
-        @log.error "failed to stop: #{$!}"
-        $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
-        return false
-      end
-      return true
+      send_signal(immediate ? :TERM : :QUIT)
     end
 
     def restart(immediate)
-      @log.info immediate ? "Received immediate restart" : "Received graceful restart"
-      begin
-        @engine.restart(immediate, load_config)
-      rescue
-        @log.error "failed to restart: #{$!}"
-        $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
-        return false
-      end
-      return true
-    end
-
-    def replace(immediate, command=[$0]+ARGV)
-      @log.info immediate ? "Received immediate binary replace" : "Received graceful binary replace"
-      begin
-        @engine.replace(immediate, command)
-      rescue
-        @log.error "failed to replace: #{$!}"
-        $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
-        return false
-      end
-      return true
+      send_signal(immediate ? :HUP : :USR1)
     end
 
     def logrotated
-      @log.info "reopen a log file"
-      @engine.logrotated
-      @log.reopen!
-      return true
+      send_signal(:USR2)
+    end
+
+    def detach
+      send_signal(:INT)
+      @finish_flag.set!
     end
 
     private
-    def load_config
-      raw_config = @config_load_proc.call
-      config = {}
-      raw_config.each_pair {|k,v| config[k.to_sym] = v }
-
-      old_log = @log
-      log = DaemonsLogger.new(config[:log] || STDERR)
-      old_log.close if old_log
-      @log = log
-
-      config[:logger] = log
-
-      return config
+    def send_signal(sig)
+      begin
+        Process.kill(sig, @pid)
+      rescue Errno::ESRCH, Errno::EPERM
+      end
     end
 
-    def install_signal_handlers(&block)
-      sig = SignalQueue.start do |sig|
+    def install_signal_handlers
+      SignalQueue.start do |sig|
         sig.trap :TERM do
           stop(false)
         end
+
+        # override
         sig.trap :INT do
-          stop(false)
+          detach
         end
 
         sig.trap :QUIT do
@@ -132,33 +108,9 @@ module PerfectQueue
           restart(true)
         end
 
-        begin
-          sig.trap :WINCH do
-            replace(false)
-          end
-        rescue
-          # FIXME some platforms might not support SIGWINCH
-        end
-
-        begin
-          sig.trap :PWR do
-            replace(true)
-          end
-        rescue
-          # FIXME some platforms might not support SIGPWR (such as Darwin)
-        end
-
         sig.trap :USR2 do
           logrotated
         end
-
-        trap :CHLD, "SIG_IGN"
-      end
-
-      begin
-        block.call
-      ensure
-        sig.shutdown
       end
     end
   end

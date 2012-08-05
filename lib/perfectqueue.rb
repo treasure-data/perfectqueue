@@ -39,6 +39,7 @@ module PerfectQueue
     :TaskMetadataAccessors => 'perfectqueue/task_metadata',
     :TaskStatus => 'perfectqueue/task_status',
     :Worker => 'perfectqueue/worker',
+    :Supervisor => 'perfectqueue/supervisor',
     :SignalQueue => 'perfectqueue/signal_queue',
     :VERSION => 'perfectqueue/version',
   }.each_pair {|k,v|

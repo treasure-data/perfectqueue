@@ -142,13 +142,12 @@ PerfectQueue::Worker.run(Dispatch) {
 
 ### Signal handlers
 
-- **TERM**,**INT:** graceful shutdown
+- **TERM:** graceful shutdown
 - **QUIT:** immediate shutdown
 - **USR1:** graceful restart
 - **HUP:** immediate restart
-- **EMT:** immediate binary replace
-- **WINCH:** graceful binary replace
 - **USR2:** reopen log files
+- **INT:** detach process
 
 ## Configuration
 

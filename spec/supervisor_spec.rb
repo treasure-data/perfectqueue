@@ -28,18 +28,18 @@ class TestApp < PerfectQueue::Application::Dispatch
   route /reg.*/ => RegexpHandler
 end
 
-describe Worker do
+describe Supervisor do
   include QueueTest
 
   before do
-    @worker = Worker.new(TestApp, queue_config)
+    @sv = Supervisor.new(TestApp, queue_config)
     @thread = Thread.new {
-      @worker.run
+      @sv.run
     }
   end
 
   after do
-    @worker.stop(true)
+    @sv.stop(true)
     @thread.join
   end
 
