@@ -69,7 +69,7 @@ module PerfectQueue
       end
 
       def stop(immediate)
-        @log.info immediate ? "Stopping worker thread immediately" : "Stopping worker thread gracefully"
+        @log.info immediate ? "Stopping worker thread immediately id=#{@processor_id}" : "Stopping worker thread gracefully id=#{@processor_id}"
         @tm.stop_task(immediate)
         @finish_flag.set!
       end
@@ -95,14 +95,14 @@ module PerfectQueue
           end
         }
       rescue
-        @log.error "Unknown error #{$!.class}: #{$!}: Exiting worker pid=#{Process.pid}"
+        @log.error "Unknown error #{$!.class}: #{$!}: Exiting worker id=#{@processor_id}"
         $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
       ensure
         @tm.stop
       end
 
       def process(task)
-        @log.info "acquired task: #{task.inspect}"
+        @log.info "acquired task id=#{@processor_id}: #{task.inspect}"
         begin
           r = @runner.new(task)
           @tm.set_task(task, r)
@@ -112,7 +112,7 @@ module PerfectQueue
             @tm.task_finished(task)
           end
         rescue
-          @log.error "process failed: #{$!.class}: #{$!}"
+          @log.error "process failed id=#{@processor_id}: #{$!.class}: #{$!}"
           $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
           raise  # force exit
         end
