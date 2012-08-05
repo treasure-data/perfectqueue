@@ -1,4 +1,9 @@
 
+== 2012-08-05 version 0.8.12
+
+* Support 'process detach' feature for a replacement of binary replace
+
+
 == 2012-08-05 version 0.8.11
 
 * Support child_fork_frequency_limit option to wait before forking child
