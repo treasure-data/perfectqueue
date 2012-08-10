@@ -1,10 +1,17 @@
 # PerfectQueue
 
 PerfectQueue is a highly available distributed queue built on top of RDBMS.
-It provides at-least-once semantics; Even if a worker node fails during processing a task, the task is retried by another worker.
 PerfectQueue provides similar API to Amazon SQS. But unlike Amazon SQS, PerfectQueue never delivers finished tasks.
 
-Since PerfectQueue also prevents storing a same task twice by using unique task identifier, client applications can retry to submit tasks until it succeeds.
+PerfectQueue introduces following concepts:
+
+  * **At-least-once semantics:** Even if a worker node fails during processing a task, another worker takes over the task.
+  * **Multiuser-aware fair scheduling**: PerfectQueue schedules tasks submitted by users who have larger resource assignment.
+  * **Decider:** Decider is a simple mechanism to implement complex workflows on top of queues while keeping loose coupling.
+  * **Idempotent task submission:** All tasks have unique identifier and PerfectQueue prevents storing same task twice.
+    * Note: client applications should consider how to always generate a same string for a (semantically) same task.
+  * **Idempotent task processing support:** PerfectQueue provides constant unique task identifier for workers.
+  * **Graceful and live restarting:** PerfectQueue continues processing of long-running tasks even during restarting.
 
 All you have to consider is implementing idempotent worker programs. PerfectQueue manages the other problems.
 
@@ -147,7 +154,7 @@ PerfectQueue::Worker.run(Dispatch) {
 - **USR1:** graceful restart
 - **HUP:** immediate restart
 - **USR2:** reopen log files
-- **INT:** detach process
+- **INT:** detach process for live restarting
 
 ## Configuration
 
@@ -164,6 +171,7 @@ PerfectQueue::Worker.run(Dispatch) {
 - **child_graceful_kill_limit:** threshold time to switch SIGTERM to SIGKILL (default: never)
 - **child_heartbeat_interval:** interval to send heartbeat packets to a child process (default: 2 sec)
 - **child_heartbeat_limit:** threshold time to detect freeze of a child process (default: 10.0 sec)
+- **detach_wait:** sleep for this seconds before detaching process for live restarting (default: 10.0 sec)
 
 ## Backend types
 
