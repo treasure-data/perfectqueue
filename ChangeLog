@@ -1,4 +1,9 @@
 
+== 2012-08-10 version 0.7.24
+
+* Kill running task if an unexpected error occured during extending timeout
+
+
 == 2012-08-03 version 0.7.23
 
 * Use free slot ratio instead of free slot amount to decide task priorities
