@@ -1,4 +1,9 @@
 
+== 2012-08-10 version 0.8.13
+
+* Force stop a processor when unknown exception occured during task heartbeat
+
+
 == 2012-08-05 version 0.8.12
 
 * Support 'process detach' feature for a replacement of binary replace
