@@ -19,10 +19,11 @@
 module PerfectQueue
 
   class TaskMonitor
-    def initialize(config, child_heartbeat=nil)
+    def initialize(config, child_heartbeat=nil, force_stop=nil)
       @config = config
       @log = config[:logger]
       @child_heartbeat = child_heartbeat || Proc.new {}
+      @force_stop = force_stop || Proc.new {}
 
       @child_heartbeat_interval = (@config[:child_heartbeat_interval] || 2).to_i
       @task_heartbeat_interval = (@config[:task_heartbeat_interval] || 2).to_i
@@ -135,15 +136,16 @@ module PerfectQueue
         end
       }
     rescue
-      @log.error "Unknown error #{$!.class}: #{$!}. Exiting worker pid=#{Process.pid}"
+      @log.error "Unknown error #{$!.class}: #{$!}"
       $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
+      @force_stop.call
     end
 
     private
     def task_heartbeat
       @task.heartbeat! :message => @heartbeat_message
       @heartbeat_message = nil
-    rescue TaskError
+    rescue
       # finished, cancel_requested, preempted, etc.
       kill_task($!)
     end

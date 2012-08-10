@@ -27,7 +27,7 @@ module PerfectQueue
         @running_flag = BlockingFlag.new
         @finish_flag = BlockingFlag.new
 
-        @tm = TaskMonitor.new(config, method(:child_heartbeat))
+        @tm = TaskMonitor.new(config, method(:child_heartbeat), method(:force_stop))
 
         restart(false, config)
       end
@@ -71,6 +71,12 @@ module PerfectQueue
       def stop(immediate)
         @log.info immediate ? "Stopping thread immediately id=#{@processor_id}" : "Stopping thread gracefully id=#{@processor_id}"
         @tm.stop_task(immediate)
+        @finish_flag.set!
+      end
+
+      def force_stop
+        @log.error "Force stopping processor processor_id=#{@processor_id}"
+        @tm.stop_task(true)
         @finish_flag.set!
       end
 
