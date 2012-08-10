@@ -66,6 +66,10 @@ class MonitorThread
         @log.info "task id=#{@task_id} is canceled."
         @canceled = true
         @kill_time = now
+      rescue
+        @log.error "unexpected error id=#{@task_id}: #{$!}"
+        @canceled = true
+        @kill_time = now
       end
       @heartbeat_time = now + @heartbeat_interval
     end
