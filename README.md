@@ -1,17 +1,17 @@
 # PerfectQueue
 
 PerfectQueue is a highly available distributed queue built on top of RDBMS.
-PerfectQueue provides similar API to Amazon SQS. But unlike Amazon SQS, PerfectQueue never delivers finished tasks.
+PerfectQueue provides similar API to Amazon SQS, while PerfectQueue focues on reliability and flexible scheduling rather than scalability.
 
 PerfectQueue introduces following concepts:
 
   * **At-least-once semantics:** Even if a worker node fails during processing a task, another worker takes over the task.
   * **Multiuser-aware fair scheduling**: PerfectQueue schedules tasks submitted by users who have larger resource assignment.
   * **Decider:** Decider is a simple mechanism to implement complex workflows on top of queues while keeping loose coupling.
+  * **Graceful and live restarting:** PerfectQueue continues processing of long-running tasks even during restarting.
   * **Idempotent task submission:** All tasks have unique identifier and PerfectQueue prevents storing same task twice.
     * Note: client applications should consider how to always generate a same string for a (semantically) same task.
-  * **Idempotent task processing support:** PerfectQueue provides constant unique task identifier for workers.
-  * **Graceful and live restarting:** PerfectQueue continues processing of long-running tasks even during restarting.
+  * **Idempotent task processing support:** Workers can use a constant unique identifier to process tasks idempotently.
 
 All you have to consider is implementing idempotent worker programs. PerfectQueue manages the other problems.
 
