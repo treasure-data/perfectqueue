@@ -33,6 +33,7 @@ module PerfectQueue
       @detach_wait = config[:detach_wait] || config['detach_wait'] || 10.0
 
       @sv = Supervisor.new(runner, &block)
+      @detach = false
       @finish_flag = BlockingFlag.new
     end
 
@@ -46,14 +47,25 @@ module PerfectQueue
       install_signal_handlers
 
       begin
+
         until @finish_flag.set?
           pid, status = Process.waitpid2(@pid, Process::WNOHANG)
+          break if pid
           @finish_flag.wait(1)
         end
 
-        unless pid
-          # child process is alive but detached
-          sleep @detach_wait
+        return if pid
+
+        if @detach
+          wait_time = Time.now + @detach_wait
+          while (w = wait_time - Time.now) > 0
+            sleep [1, w].max
+            pid, status = Process.waitpid2(@pid)
+            break if pid
+          end
+
+        else
+          # child process finished unexpectedly
         end
 
       rescue Errno::ECHILD
@@ -74,6 +86,7 @@ module PerfectQueue
 
     def detach
       send_signal(:INT)
+      @detach = true
       @finish_flag.set!
     end
 
