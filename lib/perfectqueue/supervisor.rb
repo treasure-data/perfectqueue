@@ -33,11 +33,15 @@ module PerfectQueue
       @config_load_proc = block
     end
 
+    attr_reader :engine
+
     def run
       @log.info "PerfectQueue #{VERSION}"
 
       install_signal_handlers do
-        @engine = Engine.new(@runner, load_config)
+        config = load_config
+        @engine = Engine.new(@runner, config)
+        listen_debug_server(config)
         begin
           @engine.run
         ensure
@@ -109,6 +113,31 @@ module PerfectQueue
       config[:logger] = log
 
       return config
+    end
+
+    def listen_debug_server(config)
+      address = config[:debug].to_s
+      return if address.empty?
+
+      require 'drb'
+      if address.include?('/')
+        # unix
+        require 'drb/unix'
+        uri = "drbunix:#{address}"
+        if File.exist?(address)
+          File.unlink(address) rescue nil
+        end
+      else
+        # tcp
+        a, b = address.split(':',2)
+        if b
+          uri = "druby://#{a}:#{b}"
+        else
+          uri = "druby://0.0.0.0:#{a}"
+        end
+      end
+
+      @debug_server = DRb::DRbServer.new(uri, self)
     end
 
     def install_signal_handlers(&block)

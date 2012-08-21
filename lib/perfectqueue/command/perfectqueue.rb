@@ -12,6 +12,7 @@ commands:
     force_finish <key>               Force finish a task
     run <class>                      Run a worker process
     init                             Initialize a backend database
+    debug <address>                  Connect to debug interface of a worker
 
 ]
 op.version = PerfectQueue::VERSION
@@ -20,6 +21,7 @@ env = ENV['RAILS_ENV'] || 'development'
 config_path = 'config/perfectqueue.yml'
 include_dirs = []
 require_files = []
+debug_listen = nil
 
 task_options = {
 }
@@ -100,6 +102,11 @@ begin
     cmd = :init
     usage nil unless ARGV.length == 0
 
+  when 'debug'
+    cmd = :debug
+    usage nil unless ARGV.length == 1
+    debug_address = ARGV[0]
+
   else
     raise "unknown command: '#{cmd}'"
   end
@@ -163,5 +170,28 @@ when :init
   PerfectQueue.open(config_load_proc.call) {|queue|
     queue.client.init_database
   }
+
+when :debug
+  require 'irb'
+  require 'drb'
+  if debug_address.include?('/')
+    # unix
+    require 'drb/unix'
+    uri = "drbunix:#{debug_address}"
+  else
+    # tcp
+    uri = "druby://#{debug_address}"
+  end
+
+  puts "Connecting to #{uri}"
+
+  remote_supervisor = DRb::DRbObject.new_with_uri(uri)
+  Supervisor = remote_supervisor
+  Engine = remote_supervisor.engine
+
+  puts "Engine is initialized as a remote engine instance."
+
+  ARGV.clear
+  IRB.start
 end
 

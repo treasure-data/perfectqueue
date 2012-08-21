@@ -38,6 +38,8 @@ module PerfectQueue
       restart(false, config)
     end
 
+    attr_reader :processors
+
     def restart(immediate, config)
       return nil if @finish_flag.set?
 
