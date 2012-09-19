@@ -32,19 +32,26 @@ module PerfectQueue
       @queue = []
       @mutex = Mutex.new
       @cond = ConditionVariable.new
+      @finished = false
 
       block.call(self) if block
     end
 
-    def trap(sig, &block)
+    def trap(sig, command=nil, &block)
       sig = sig.to_sym
       old = @handlers[sig]
 
-      Kernel.trap(sig) do
-        enqueue(sig)
+      if block
+        Kernel.trap(sig) do
+          enqueue(sig)
+        end
+        @handlers[sig] = block
+
+      else
+        Kernel.trap(sig, command)
+        @handlers.delete(sig)
       end
 
-      @handlers[sig] = block
       old
     end
 
@@ -57,7 +64,8 @@ module PerfectQueue
     end
 
     def stop
-      enqueue(nil)
+      @finished = true
+      #enqueue(nil)  # causes recursive lock
     end
 
     def shutdown
@@ -66,16 +74,16 @@ module PerfectQueue
     end
 
     def run
-      finished = false
-      until finished
+      @owner_thread = Thread.current
+      until @finished
         h = nil
         @mutex.synchronize do
           while @queue.empty?
-            @cond.wait(@mutex)
+            @cond.wait(@mutex, 0.5)
           end
           sig = @queue.shift
           if sig == nil
-            finished = true
+            @finished = true
           else
             h = @handlers[sig]
           end
@@ -95,7 +103,7 @@ module PerfectQueue
 
     private
     def enqueue(sig)
-      if Thread.current == @thread
+      if Thread.current == @owner_thread
         @queue << sig
         if @mutex.locked?
           @cond.signal
