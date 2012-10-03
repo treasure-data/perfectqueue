@@ -224,5 +224,24 @@ describe Queue do
       queue['task99'].metadata
     }.should raise_error NotFoundError
   end
+
+  it 'prefetch' do
+    now = Time.now.to_i
+    queue.submit('task01', 'type1', {"a"=>1}, :now=>now+0)
+    queue.submit('task02', 'type2', {"a"=>2}, :now=>now+1)
+    queue.submit('task03', 'type3', {"a"=>3}, :now=>now+2)
+
+    tasks = queue.poll_multi(:now=>now+10, :alive_time=>10, :max_acquire=>2)
+    tasks.size.should == 2
+    tasks[0].key.should == 'task01'
+    tasks[1].key.should == 'task02'
+
+    tasks = queue.poll_multi(:now=>now+10, :alive_time=>10, :max_acquire=>2)
+    tasks.size.should == 1
+    tasks[0].key.should == 'task03'
+
+    tasks = queue.poll_multi(:now=>now+10, :alive_time=>10, :max_acquire=>2)
+    tasks.should == nil
+  end
 end
 

@@ -65,7 +65,7 @@ module PerfectQueue
 
     def stop
       @finished = true
-      #enqueue(nil)  # causes recursive lock
+      enqueue(nil)  # TODO causes recursive lock?
     end
 
     def shutdown

@@ -24,7 +24,6 @@ module PerfectQueue
 
       @backend = Backend.new_backend(self, @config)
 
-      @max_acquire = @config[:max_acquire] || 1
       @retention_time = @config[:retention_time] || 300
       @alive_time = @config[:alive_time] || 300
       @retry_wait = @config[:retry_wait] || 300  # TODO retry wait algorithm
@@ -65,7 +64,7 @@ module PerfectQueue
     # :alive_time => nil
     def acquire(options={})
       alive_time = options[:alive_time] || @alive_time
-      max_acquire = options[:max_acquire] || @max_acquire
+      max_acquire = options[:max_acquire] || 1
 
       @backend.acquire(alive_time, max_acquire, options)
     end

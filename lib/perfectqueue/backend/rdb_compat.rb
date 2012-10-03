@@ -148,29 +148,39 @@ SQL
         now = (options[:now] || Time.now).to_i
         next_timeout = now + alive_time
 
+        fetched = []
+
         connect {
           while true
             rows = 0
-            @db.transaction do
-              @db.fetch(@sql, now, now) {|row|
-                unless row[:created_at]
-                  # finished task
-                  @db["DELETE FROM `#{@table}` WHERE id=?;", row[:id]].delete
+            begin
+              @db.transaction do
+                @db.fetch(@sql, now, now) {|row|
+                  unless row[:created_at]
+                    # finished task
+                    @db["DELETE FROM `#{@table}` WHERE id=?;", row[:id]].delete
 
-                else
-                  ## optimistic lock is not needed because the row is locked for update
-                  #n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?", timeout, row[:id], row[:timeout]].update
-                  n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=?", next_timeout, row[:id]].update
-                  if n > 0
-                    attributes = create_attributes(nil, row)
-                    task_token = Token.new(row[:id])
-                    task = AcquiredTask.new(@client, row[:id], attributes, task_token)
-                    return [task]
+                  else
+                    ## optimistic lock is not needed because the row is locked for update
+                    #n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?", timeout, row[:id], row[:timeout]].update
+                    n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=?", next_timeout, row[:id]].update
+                    if n > 0
+                      attributes = create_attributes(nil, row)
+                      task_token = Token.new(row[:id])
+                      task = AcquiredTask.new(@client, row[:id], attributes, task_token)
+                      fetched.push task
+                      break if fetched.size >= max_acquire
+                    end
                   end
-                end
 
-                rows += 1
-              }
+                  rows += 1
+                }
+              end
+            rescue
+              raise if fetched.empty?
+            end
+            unless fetched.empty?
+              return fetched
             end
             break nil if rows < MAX_SELECT_ROW
           end

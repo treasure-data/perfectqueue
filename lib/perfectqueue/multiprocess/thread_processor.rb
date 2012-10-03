@@ -59,6 +59,7 @@ module PerfectQueue
       def restart(immediate, config)
         @poll_interval = config[:poll_interval] || 1.0
         @log = config[:logger]
+        @task_prefetch = config[:task_prefetch] || 0
         @config = config
 
         @tm.stop_task(immediate)
@@ -92,11 +93,17 @@ module PerfectQueue
       def run_loop
         PerfectQueue.open(@config) {|queue|
           until @finish_flag.set?
-            task = queue.poll
-            if task
-              process(task)
-            else
+            tasks = queue.poll_multi(:max_acquire=>1+@task_prefetch)
+            if tasks == nil || tasks.empty?
               @finish_flag.wait(@poll_interval)
+            else
+              begin
+                while task = tasks.shift
+                  process(task)
+                end
+              ensure
+                tasks.each {|task| task.release! }
+              end
             end
           end
         }
