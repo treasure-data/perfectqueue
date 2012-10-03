@@ -74,6 +74,12 @@ module PerfectQueue
     end
 
     def run
+      @processors.each {|c|
+        c.keepalive
+        # add wait time before starting processors to avoid
+        # a spike of the number of concurrent connections.
+        sleep rand  # upto 1 second, average 0.5 seoncd
+      }
       until @finish_flag.set?
         @processors.each {|c| c.keepalive }
         @finish_flag.wait(@child_keepalive_interval)
