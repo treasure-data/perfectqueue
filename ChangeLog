@@ -1,4 +1,11 @@
 
+== 2012-09-03 version 0.8.17
+
+* Increased wait time before starting processors to 1 second at average and
+  2 seconds at maximum
+* rdb_compat backend waits random seconds after detecting deadlocks
+
+
 == 2012-09-03 version 0.8.16
 
 * Support task_prefetch option (default = 0, meaning no-prefetch)
