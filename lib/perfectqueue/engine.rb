@@ -78,7 +78,7 @@ module PerfectQueue
         c.keepalive
         # add wait time before starting processors to avoid
         # a spike of the number of concurrent connections.
-        sleep rand  # upto 1 second, average 0.5 seoncd
+        sleep rand*2  # upto 2 second, average 1 seoncd
       }
       until @finish_flag.set?
         @processors.each {|c| c.keepalive }
