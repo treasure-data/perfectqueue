@@ -33,7 +33,7 @@ module PerfectQueue
       end
 
       def restart(immediate, config)
-        @child_heartbeat_limit = config[:child_heartbeat_limit] || 10.0
+        @child_heartbeat_limit = config[:child_heartbeat_limit] || 60.0
         @child_kill_interval = config[:child_kill_interval] || 2.0
         @child_graceful_kill_limit = config[:child_graceful_kill_limit] || nil
         @child_fork_frequency_limit = config[:child_fork_frequency_limit] || 5.0
