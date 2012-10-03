@@ -263,7 +263,7 @@ SQL
               retry_count += 1
               if retry_count < MAX_RETRY
                 STDERR.puts err + "\n  retrying."
-                sleep 0.5
+                sleep rand
                 retry
               else
                 STDERR.puts err + "\n  abort."
