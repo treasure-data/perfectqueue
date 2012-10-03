@@ -1,4 +1,14 @@
 
+== 2012-09-03 version 0.8.16
+
+* Support task_prefetch option (default = 0, meaning no-prefetch)
+* Wait 0.5 seconds before starting processors to avoid a spike of the
+  number of concurrent connections
+* Increased default child_heartbeat_limit to 60 seconds
+* Fixed a potential deadlock problem in shutdown process
+* Fixed detach time wait
+
+
 == 2012-08-30 version 0.8.15
 
 * Improved detach process routines
