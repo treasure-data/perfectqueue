@@ -102,7 +102,15 @@ module PerfectQueue
                   process(task)
                 end
               ensure
-                tasks.each {|task| task.release! }
+                # TODO do not call release! because rdb_compat backend
+                #      doesn't have a mechanism to detect preemption.
+                #      release! could cause a problem that multiple
+                #      workers run one task concurrently.
+                #tasks.each {|task|
+                #  # ignoring errors doesn't cause serious problems
+                #  # because it's same as failure of this server.
+                #  task.release! rescue nil
+                #}
               end
             end
           end
