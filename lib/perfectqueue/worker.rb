@@ -59,7 +59,7 @@ module PerfectQueue
         if @detach
           wait_time = Time.now + @detach_wait
           while (w = wait_time - Time.now) > 0
-            sleep [1, w].max
+            sleep [0.5, w].min
             pid, status = Process.waitpid2(@pid, Process::WNOHANG)
             break if pid
           end
