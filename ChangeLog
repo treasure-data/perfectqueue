@@ -1,4 +1,12 @@
 
+== 2012-09-04 version 0.8.18
+
+* rdb_compat backend uses table lock to avoid dead locks with InnoDB
+* rdb_compat backend uses bulk cleanup to improve throughput
+* rdb_compat backend uses created_at in WHERE clause to work with partitioning
+* rdb_compat backend supports disable_resource_limit to improve acquire() performance
+
+
 == 2012-09-03 version 0.8.17
 
 * Increased wait time before starting processors to 1 second at average and
