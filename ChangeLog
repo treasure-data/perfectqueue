@@ -1,4 +1,10 @@
 
+== 2012-09-04 version 0.8.19
+
+* rdb_compat backend uses >= 0 condition instead of IS NOT NULL to work with
+RANGE partitioning of MySQL
+
+
 == 2012-09-04 version 0.8.18
 
 * rdb_compat backend uses table lock to avoid dead locks with InnoDB
