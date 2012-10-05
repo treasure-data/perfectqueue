@@ -47,7 +47,7 @@ module PerfectQueue
           @sql = <<SQL
 SELECT id, timeout, data, created_at, resource
 FROM `#{@table}`
-WHERE timeout <= ? AND timeout <= ? AND created_at IS NOT NULL
+WHERE timeout <= ? AND timeout <= ? AND created_at >= 0
 ORDER BY timeout ASC
 LIMIT ?
 SQL
@@ -58,10 +58,10 @@ FROM `#{@table}`
 LEFT JOIN (
   SELECT resource AS res, COUNT(1) AS running
   FROM `#{@table}` AS T
-  WHERE timeout > ? AND created_at IS NOT NULL AND resource IS NOT NULL
+  WHERE timeout > ? AND created_at >= 0 AND resource IS NOT NULL
   GROUP BY resource
 ) AS R ON resource = res
-WHERE timeout <= ? AND created_at IS NOT NULL AND (max_running-running IS NULL OR max_running-running > 0)
+WHERE timeout <= ? AND created_at >= 0 AND (max_running-running IS NULL OR max_running-running > 0)
 ORDER BY weight IS NOT NULL, weight DESC, timeout ASC
 LIMIT ?
 SQL
@@ -134,7 +134,7 @@ SQL
 
         connect {
           #@db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` WHERE !(created_at IS NULL AND timeout <= ?) ORDER BY timeout ASC;", now) {|row|
-          @db.fetch("SELECT id, timeout, data, created_at, resource, max_running FROM `#{@table}` ORDER BY timeout ASC;", now) {|row|
+          @db.fetch("SELECT id, timeout, data, created_at, resource, max_running FROM `#{@table}` ORDER BY timeout ASC", now) {|row|
             attributes = create_attributes(now, row)
             task = TaskWithMetadata.new(@client, row[:id], attributes)
             yield task
@@ -145,6 +145,7 @@ SQL
       # => Task
       def submit(key, type, data, options)
         now = (options[:now] || Time.now).to_i
+        now = 0 if now < 0
         run_at = (options[:run_at] || now).to_i
         user = options[:user]
         user = user.to_s if user
@@ -155,7 +156,7 @@ SQL
         connect {
           begin
             n = @db[
-              "INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?);",
+              "INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?)",
               key, run_at, data.to_json, now, user, max_running
             ].insert
             return Task.new(@client, key)
@@ -203,7 +204,7 @@ SQL
             params = [sql, next_timeout]
             tasks.each {|t| params << t.key }
             sql << (1..tasks.size).map { '?' }.join(',')
-            sql << ") AND created_at IS NOT NULL"
+            sql << ") AND created_at >= 0"
 
             n = @db[*params].update
             if n != tasks.size
@@ -220,9 +221,9 @@ SQL
       def cancel_request(key, options)
         now = (options[:now] || Time.now).to_i
 
-        # created_at=-1 means cancel_requested
+        # created_at=0 means cancel_requested
         connect {
-          n = @db["UPDATE `#{@table}` SET created_at=-1 WHERE id=? AND created_at IS NOT NULL;", key].update
+          n = @db["UPDATE `#{@table}` SET created_at=0 WHERE id=? AND created_at >= 0", key].update
           if n <= 0
             raise AlreadyFinishedError, "task key=#{key} does not exist or already finished."
           end
@@ -241,7 +242,7 @@ SQL
         key = task_token.key
 
         connect {
-          n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL;", delete_timeout, key].update
+          n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at >= 0", delete_timeout, key].update
           if n <= 0
             raise IdempotentAlreadyFinishedError, "task key=#{key} does not exist or already finished."
           end
@@ -256,12 +257,12 @@ SQL
         key = task_token.key
 
         connect {
-          n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND created_at IS NOT NULL;", next_timeout, key].update
+          n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND created_at >= 0", next_timeout, key].update
           if n <= 0
             row = @db.fetch("SELECT id, timeout, created_at FROM `#{@table}` WHERE id=? LIMIT 1", key).first
             if row == nil
               raise PreemptedError, "task key=#{key} does not exist or preempted."
-            elsif row[:created_at] == -1
+            elsif row[:created_at] == 0
               raise CancelRequestedError, "task key=#{key} is cancel requested."
             elsif row[:timeout] == next_timeout
               # ok
@@ -309,8 +310,7 @@ SQL
         if row[:created_at] === nil
           created_at = nil  # unknown creation time
           status = TaskStatus::FINISHED
-        elsif row[:created_at] == -1
-          created_at = 0
+        elsif row[:created_at] == 0
           status = TaskStatus::CANCEL_REQUESTED
         elsif now && row[:timeout] < now
           created_at = row[:created_at]
