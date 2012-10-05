@@ -43,7 +43,16 @@ module PerfectQueue
           # connection test
         }
 
-    @sql = <<SQL
+        if config[:disable_resource_limit]
+          @sql = <<SQL
+SELECT id, timeout, data, created_at, resource
+FROM `#{@table}`
+WHERE timeout <= ? AND timeout <= ? AND created_at IS NOT NULL
+ORDER BY timeout ASC
+LIMIT ?
+SQL
+        else
+          @sql = <<SQL
 SELECT id, timeout, data, created_at, resource, max_running, max_running/running AS weight
 FROM `#{@table}`
 LEFT JOIN (
@@ -52,24 +61,37 @@ LEFT JOIN (
   WHERE timeout > ? AND created_at IS NOT NULL AND resource IS NOT NULL
   GROUP BY resource
 ) AS R ON resource = res
-WHERE timeout <= ? AND (max_running-running IS NULL OR max_running-running > 0)
+WHERE timeout <= ? AND created_at IS NOT NULL AND (max_running-running IS NULL OR max_running-running > 0)
 ORDER BY weight IS NOT NULL, weight DESC, timeout ASC
-LIMIT #{MAX_SELECT_ROW}
+LIMIT ?
 SQL
-
-        # sqlite doesn't support SELECT ... FOR UPDATE but
-        # sqlite doesn't need it because the db is not shared
-        unless url.split('//',2)[0].to_s.include?('sqlite')
-          @sql << 'FOR UPDATE'
         end
+
+        case url.split('//',2)[0].to_s
+        when /sqlite/i
+          # sqlite always locks tables on BEGIN
+          @table_lock = nil
+        when /mysql/i
+          if config[:disable_resource_limit]
+            @table_lock = "LOCK TABLES `#{@table}` WRITE"
+          else
+            @table_lock = "LOCK TABLES `#{@table}` WRITE, `#{@table}` AS T WRITE"
+          end
+        else
+          @table_lock = "LOCK TABLE `#{@table}`"
+        end
+
+        @prefetch_break_types = config[:prefetch_break_types] || []
+
+        @cleanup_interval = config[:cleanup_interval] || DEFAULT_DELETE_INTERVAL
+        @cleanup_interval_count = 0
       end
 
       attr_reader :db
 
-      MAX_SELECT_ROW = 8
-      MAX_RESOURCE = (ENV['PQ_MAX_RESOURCE'] || 4).to_i
       #KEEPALIVE = 10
       MAX_RETRY = 10
+      DEFAULT_DELETE_INTERVAL = 20
 
       def init_database(options)
         sql = %[
@@ -148,42 +170,49 @@ SQL
         now = (options[:now] || Time.now).to_i
         next_timeout = now + alive_time
 
-        fetched = []
+        tasks = []
 
         connect {
-          while true
-            rows = 0
-            begin
-              @db.transaction do
-                @db.fetch(@sql, now, now) {|row|
-                  unless row[:created_at]
-                    # finished task
-                    @db["DELETE FROM `#{@table}` WHERE id=?;", row[:id]].delete
-
-                  else
-                    ## optimistic lock is not needed because the row is locked for update
-                    #n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND timeout=?", timeout, row[:id], row[:timeout]].update
-                    n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=?", next_timeout, row[:id]].update
-                    if n > 0
-                      attributes = create_attributes(nil, row)
-                      task_token = Token.new(row[:id])
-                      task = AcquiredTask.new(@client, row[:id], attributes, task_token)
-                      fetched.push task
-                      break if fetched.size >= max_acquire
-                    end
-                  end
-
-                  rows += 1
-                }
-              end
-            rescue
-              raise if fetched.empty?
-            end
-            unless fetched.empty?
-              return fetched
-            end
-            break nil if rows < MAX_SELECT_ROW
+          if @cleanup_interval_count <= 0
+            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", now].delete
+            @cleanup_interval_count = @cleanup_interval
           end
+
+          @db.transaction do
+            if @table_lock
+              @db[@table_lock].update
+            end
+
+            tasks = []
+            @db.fetch(@sql, now, now, max_acquire) {|row|
+              attributes = create_attributes(nil, row)
+              task_token = Token.new(row[:id])
+              task = AcquiredTask.new(@client, row[:id], attributes, task_token)
+              tasks.push task
+
+              if @prefetch_break_types.include?(attributes[:type])
+                break
+              end
+            }
+
+            if tasks.empty?
+              return nil
+            end
+
+            sql = "UPDATE `#{@table}` SET timeout = ? WHERE id IN ("
+            params = [sql, next_timeout]
+            tasks.each {|t| params << t.key }
+            sql << (1..tasks.size).map { '?' }.join(',')
+            sql << ") AND created_at IS NOT NULL"
+
+            n = @db[*params].update
+            if n != tasks.size
+              # TODO table lock doesn't work. error?
+            end
+
+            @cleanup_interval_count -= 1
+          end
+          return tasks
         }
       end
 

@@ -25,7 +25,9 @@ module QueueTest
           :type => 'rdb_compat',
           :url => "sqlite://#{database_path}",
           :table => 'test_tasks',
-          :processor_type => 'thread'
+          :processor_type => 'thread',
+          :cleanup_interval => 0,  # for test
+          #:disable_resource_limit => true,  # TODO backend-specific test cases
         }
       end
 
