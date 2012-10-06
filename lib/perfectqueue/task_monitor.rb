@@ -54,6 +54,7 @@ module PerfectQueue
 
     def set_task(task, runner)
       task.extend(TaskMonitorHook)
+      task.log = @log
       task.task_monitor = self
       task.runner = runner
       @mutex.synchronize {
@@ -97,7 +98,7 @@ module PerfectQueue
     # callback
     def task_finished(task, &block)
       @mutex.synchronize {
-        ret = block.call if block
+        ret = block.call if block  # TODO is this ought to be synchronized?
         if task == @task
           @task = nil
         end
@@ -152,6 +153,7 @@ module PerfectQueue
   end
 
   module TaskMonitorHook
+    attr_accessor :log
     attr_accessor :task_monitor
     attr_accessor :runner
 
@@ -164,24 +166,28 @@ module PerfectQueue
     attr_reader :heartbeat_message
 
     def finish!(*args, &block)
+      @log.info "finished task=#{self.key}"
       @task_monitor.task_finished(self) {
         super(*args, &block)
       }
     end
 
     def release!(*args, &block)
+      @log.info "release task=#{self.key}"
       @task_monitor.task_finished(self) {
         super(*args, &block)
       }
     end
 
     def retry!(*args, &block)
+      @log.info "retry task=#{self.key}"
       @task_monitor.task_finished(self) {
         super(*args, &block)
       }
     end
 
     def cancel_request!(*args, &block)
+      @log.info "cancel request task=#{self.key}"
       @task_monitor.task_finished(self) {
         super(*args, &block)
       }

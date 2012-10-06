@@ -123,7 +123,7 @@ module PerfectQueue
       end
 
       def process(task)
-        @log.info "acquired task id=#{@processor_id}: #{task.inspect}"
+        @log.info "acquired task task=#{task.key} id=#{@processor_id}: #{task.inspect}"
         begin
           r = @runner.new(task)
           @tm.set_task(task, r)
@@ -132,8 +132,9 @@ module PerfectQueue
           ensure
             @tm.task_finished(task)
           end
+          @log.info "completed processing task=#{task.key} id=#{@processor_id}:"
         rescue
-          @log.error "process failed id=#{@processor_id}: #{$!.class}: #{$!}"
+          @log.error "unexpectedly failed task=#{task.key} id=#{@processor_id}: #{$!.class}: #{$!}"
           $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
           raise  # force exit
         end
