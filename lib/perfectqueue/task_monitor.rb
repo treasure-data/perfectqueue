@@ -166,28 +166,28 @@ module PerfectQueue
     attr_reader :heartbeat_message
 
     def finish!(*args, &block)
-      @log.info "finished task=#{self.key}"
+      @log.info "finished task=#{self.key}" if @log
       @task_monitor.task_finished(self) {
         super(*args, &block)
       }
     end
 
     def release!(*args, &block)
-      @log.info "release task=#{self.key}"
+      @log.info "release task=#{self.key}" if @log
       @task_monitor.task_finished(self) {
         super(*args, &block)
       }
     end
 
     def retry!(*args, &block)
-      @log.info "retry task=#{self.key}"
+      @log.info "retry task=#{self.key}" if @log
       @task_monitor.task_finished(self) {
         super(*args, &block)
       }
     end
 
     def cancel_request!(*args, &block)
-      @log.info "cancel request task=#{self.key}"
+      @log.info "cancel request task=#{self.key}" if @log
       @task_monitor.task_finished(self) {
         super(*args, &block)
       }
