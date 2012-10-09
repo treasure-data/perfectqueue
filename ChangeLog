@@ -1,4 +1,10 @@
 
+== 2012-09-08 version 0.8.20
+
+* Show log messages when a worker decides next status of a task (finished!,
+  release!, release! and cancel_request!)
+
+
 == 2012-09-04 version 0.8.19
 
 * rdb_compat backend uses >= 0 condition instead of IS NOT NULL to work with
