@@ -1,4 +1,10 @@
 
+== 2012-09-11 version 0.8.21
+
+* rdb_compat backend uses IS NOT NULL condition instead of >= because RANGE
+partitioning of MySQL doesn't work with non-primary keys
+
+
 == 2012-09-08 version 0.8.20
 
 * Show log messages when a worker decides next status of a task (finished!,
