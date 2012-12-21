@@ -99,13 +99,13 @@ module PerfectQueue
     def release(task_token, options={})
       alive_time = options[:alive_time] || 0
 
-      @backend.heartbeat(task_token, alive_time, options)
+      @backend.release(task_token, alive_time, options)
     end
 
     def retry(task_token, options={})
       alive_time = options[:retry_wait] || @retry_wait
 
-      @backend.heartbeat(task_token, alive_time, options)
+      @backend.release(task_token, alive_time, options)
     end
 
     def close

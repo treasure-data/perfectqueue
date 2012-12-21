@@ -274,6 +274,10 @@ SQL
         nil
       end
 
+      def release(task_token, alive_time, options)
+        heartbeat(task_token, alive_time, options)
+      end
+
       protected
       def connect(&block)
         #now = Time.now.to_i
