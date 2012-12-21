@@ -40,6 +40,10 @@ module PerfectQueue
       @attributes[:user]
     end
 
+    def retry_count
+      @attributes[:retry_count]
+    end
+
     def created_at
       if t = @attributes[:created_at]
         return Time.at(t)

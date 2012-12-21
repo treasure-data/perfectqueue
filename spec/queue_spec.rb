@@ -39,19 +39,22 @@ describe Queue do
     task01.finished?.should == false
     task01.type == 'type1'
     task01.key.should == 'task01'
+    task01.retry_count.should == 0
     task01.data["a"].should == 1
 
-    t2 = a.shift
-    t2.finished?.should == false
-    t2.type == 'type1'
-    t2.key.should == 'task02'
-    t2.data["a"].should == 2
+    task02 = a.shift
+    task02.finished?.should == false
+    task02.type == 'type1'
+    task02.key.should == 'task02'
+    task01.retry_count.should == 0
+    task02.data["a"].should == 2
 
-    t3 = a.shift
-    t3.finished?.should == false
-    t3.type == 'type1'
-    t3.key.should == 'task03'
-    t3.data["a"].should == 3
+    task03 = a.shift
+    task03.finished?.should == false
+    task03.type == 'type1'
+    task03.key.should == 'task03'
+    task01.retry_count.should == 0
+    task03.data["a"].should == 3
 
     a.empty?.should == true
   end
@@ -65,11 +68,11 @@ describe Queue do
     task01 = queue.poll(:now=>now+10)
     task01.key.should == 'task01'
 
-    t2 = queue.poll(:now=>now+10)
-    t2.key.should == 'task02'
+    task02 = queue.poll(:now=>now+10)
+    task02.key.should == 'task02'
 
-    t3 = queue.poll(:now=>now+10)
-    t3.key.should == 'task03'
+    task03 = queue.poll(:now=>now+10)
+    task03.key.should == 'task03'
 
     t4 = queue.poll(:now=>now+10)
     t4.should == nil
@@ -81,14 +84,16 @@ describe Queue do
 
     task01 = queue.poll(:now=>now+10)
     task01.key.should == 'task01'
+    task01.retry_count.should == 0
 
-    t2 = queue.poll(:now=>now+10)
-    t2.should == nil
+    task02 = queue.poll(:now=>now+10)
+    task02.should == nil
 
     task01.release!(:now=>now+10)
 
-    t3 = queue.poll(:now=>now+11)
-    t3.key.should == 'task01'
+    task03 = queue.poll(:now=>now+11)
+    task03.key.should == 'task01'
+    task03.retry_count.should == 1
   end
 
   it 'timeout' do
@@ -97,12 +102,14 @@ describe Queue do
 
     task01 = queue.poll(:now=>now+10, :alive_time=>10)
     task01.key.should == 'task01'
+    task01.retry_count.should == 0
 
-    t2 = queue.poll(:now=>now+15)
-    t2.should == nil
+    task02 = queue.poll(:now=>now+15)
+    task02.should == nil
 
-    t3 = queue.poll(:now=>now+20)
-    t3.key.should == 'task01'
+    task03 = queue.poll(:now=>now+20)
+    task03.key.should == 'task01'
+    task03.retry_count.should == 1
   end
 
   it 'heartbeat' do
@@ -111,14 +118,16 @@ describe Queue do
 
     task01 = queue.poll(:now=>now+10, :alive_time=>10)
     task01.key.should == 'task01'
+    task01.retry_count.should == 0
 
     task01.heartbeat!(:alive_time=>15, :now=>now+10)
 
-    t2 = queue.poll(:now=>now+20)
-    t2.should == nil
+    task02 = queue.poll(:now=>now+20)
+    task02.should == nil
 
-    t3 = queue.poll(:now=>now+30)
-    t3.key.should == 'task01'
+    task03 = queue.poll(:now=>now+30)
+    task03.key.should == 'task01'
+    task03.retry_count.should == 1
   end
 
   it 'retry' do
@@ -127,14 +136,16 @@ describe Queue do
 
     task01 = queue.poll(:now=>now+10, :alive_time=>10)
     task01.key.should == 'task01'
+    task01.retry_count.should == 0
 
     task01.retry!(:retry_wait=>15, :now=>now+10)
 
-    t2 = queue.poll(:now=>now+20)
-    t2.should == nil
+    task02 = queue.poll(:now=>now+20)
+    task02.should == nil
 
-    t3 = queue.poll(:now=>now+30)
-    t3.key.should == 'task01'
+    task03 = queue.poll(:now=>now+30)
+    task03.key.should == 'task01'
+    task03.retry_count.should == 1
   end
 
   it 'froce_finish' do

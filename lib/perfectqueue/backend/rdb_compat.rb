@@ -45,7 +45,7 @@ module PerfectQueue
 
         if config[:disable_resource_limit]
           @sql = <<SQL
-SELECT id, timeout, data, created_at, resource
+SELECT id, timeout, data, created_at, retry_count, resource
 FROM `#{@table}`
 WHERE timeout <= ? AND timeout <= ? AND created_at IS NOT NULL
 ORDER BY timeout ASC
@@ -53,7 +53,7 @@ LIMIT ?
 SQL
         else
           @sql = <<SQL
-SELECT id, timeout, data, created_at, resource, max_running, max_running/running AS weight
+SELECT id, timeout, data, created_at, retry_count, resource, max_running, max_running/running AS weight
 FROM `#{@table}`
 LEFT JOIN (
   SELECT resource AS res, COUNT(1) AS running
@@ -100,6 +100,7 @@ SQL
               timeout INT NOT NULL,
               data BLOB NOT NULL,
               created_at INT,
+              retry_count INT NOT NULL DEFAULT 0,
               resource VARCHAR(256),
               max_running INT,
               PRIMARY KEY (id)
@@ -114,7 +115,7 @@ SQL
         now = (options[:now] || Time.now).to_i
 
         connect {
-          row = @db.fetch("SELECT timeout, data, created_at, resource, max_running FROM `#{@table}` WHERE id=? LIMIT 1", key).first
+          row = @db.fetch("SELECT timeout, data, created_at, retry_count, resource, max_running FROM `#{@table}` WHERE id=? LIMIT 1", key).first
           unless row
             raise NotFoundError, "task key=#{key} does no exist"
           end
@@ -133,8 +134,8 @@ SQL
         now = (options[:now] || Time.now).to_i
 
         connect {
-          #@db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` WHERE !(created_at IS NULL AND timeout <= ?) ORDER BY timeout ASC;", now) {|row|
-          @db.fetch("SELECT id, timeout, data, created_at, resource, max_running FROM `#{@table}` ORDER BY timeout ASC", now) {|row|
+          #@db.fetch("SELECT id, timeout, data, created_at, retry_count, resource FROM `#{@table}` WHERE !(created_at IS NULL AND timeout <= ?) ORDER BY timeout ASC;", now) {|row|
+          @db.fetch("SELECT id, timeout, data, created_at, retry_count, resource, max_running FROM `#{@table}` ORDER BY timeout ASC", now) {|row|
             attributes = create_attributes(now, row)
             task = TaskWithMetadata.new(@client, row[:id], attributes)
             yield task
@@ -200,7 +201,7 @@ SQL
               return nil
             end
 
-            sql = "UPDATE `#{@table}` SET timeout = ? WHERE id IN ("
+            sql = "UPDATE `#{@table}` SET timeout=?, retry_count=(retry_count+1) WHERE id IN ("
             params = [sql, next_timeout]
             tasks.each {|t| params << t.key }
             sql << (1..tasks.size).map { '?' }.join(',')
@@ -286,15 +287,15 @@ SQL
           #  @db.disconnect
           #end
           #@last_time = now
-          retry_count = 0
+          count = 0
           begin
             block.call
           rescue
             # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
             if $!.to_s.include?('try restarting transaction')
               err = ([$!] + $!.backtrace.map {|bt| "  #{bt}" }).join("\n")
-              retry_count += 1
-              if retry_count < MAX_RETRY
+              count += 1
+              if count < MAX_RETRY
                 STDERR.puts err + "\n  retrying."
                 sleep rand
                 retry
@@ -346,6 +347,7 @@ SQL
           :type => type,
           :user => row[:resource],
           :timeout => row[:timeout],
+          :retry_count => row[:retry_count],
           :max_running => row[:max_running],
           :message => nil,  # not supported
           :node => nil,  # not supported
