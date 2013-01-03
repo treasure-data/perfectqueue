@@ -254,5 +254,26 @@ describe Queue do
     tasks = queue.poll_multi(:now=>now+10, :alive_time=>10, :max_acquire=>2)
     tasks.should == nil
   end
+
+  it 'data' do
+    now = Time.now.to_i
+    queue.submit('task01', 'type1', {"a"=>1}, :now=>now)
+
+    task01 = queue.poll(:now=>now+10)
+    task01.key.should == 'task01'
+    task01.data.should == {"a"=>1}
+
+    task01.update_data!({"b"=>2})
+    task01.data.should == {"a"=>1, "b"=>2}
+
+    task01.update_data!({"a"=>3,"c"=>4})
+    task01.data.should == {"a"=>3, "b"=>2, "c"=>4}
+
+    task01.release!
+
+    task01 = queue.poll(:now=>now+10)
+    task01.key.should == 'task01'
+    task01.data.should == {"a"=>3, "b"=>2, "c"=>4}
+  end
 end
 

@@ -256,9 +256,19 @@ SQL
         now = (options[:now] || Time.now).to_i
         next_timeout = now + alive_time
         key = task_token.key
+        data = options[:data]
+
+        sql = "UPDATE `#{@table}` SET timeout=?"
+        params = [sql, next_timeout]
+        if data
+          sql << ", data=?"
+          params << data.to_json
+        end
+        sql << " WHERE id=? AND created_at IS NOT NULL"
+        params << key
 
         connect {
-          n = @db["UPDATE `#{@table}` SET timeout=? WHERE id=? AND created_at IS NOT NULL", next_timeout, key].update
+          n = @db[*params].update
           if n <= 0
             row = @db.fetch("SELECT id, timeout, created_at FROM `#{@table}` WHERE id=? LIMIT 1", key).first
             if row == nil

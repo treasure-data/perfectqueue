@@ -60,16 +60,6 @@ module PerfectQueue
       @mutex.synchronize {
         @task = task
         @last_task_heartbeat = Time.now.to_i
-        @heartbeat_message = nil
-      }
-    end
-
-    # callback
-    def set_heartbeat_message(task, message)
-      @mutex.synchronize {
-        if task == @task
-          @heartbeat_message = message
-        end
       }
     end
 
@@ -101,6 +91,17 @@ module PerfectQueue
         ret = block.call if block  # TODO is this ought to be synchronized?
         if task == @task
           @task = nil
+        end
+        ret
+      }
+    end
+
+    # callback
+    def external_task_heartbeat(task, &block)
+      @mutex.synchronize {
+        if task == @task
+          ret = block.call if block
+          @last_task_heartbeat = Time.now.to_i
         end
         ret
       }
@@ -144,8 +145,7 @@ module PerfectQueue
 
     private
     def task_heartbeat
-      @task.heartbeat! :message => @heartbeat_message
-      @heartbeat_message = nil
+      @task.heartbeat!
     rescue
       # finished, cancel_requested, preempted, etc.
       kill_task($!)
@@ -156,14 +156,6 @@ module PerfectQueue
     attr_accessor :log
     attr_accessor :task_monitor
     attr_accessor :runner
-
-    def heartbeat_message=(message)
-      @heartbeat_message = message
-      @task_monitor.set_heartbeat_message(self, message)
-      message
-    end
-
-    attr_reader :heartbeat_message
 
     def finish!(*args, &block)
       @log.info "finished task=#{self.key}" if @log
@@ -190,6 +182,13 @@ module PerfectQueue
       @log.info "cancel request task=#{self.key}" if @log
       @task_monitor.task_finished(self) {
         super(*args, &block)
+      }
+    end
+
+    def update_data!(hash)
+      @log.info "update data #{hash.inspect} task=#{self.key}" if @log
+      @task_monitor.external_task_heartbeat(self) {
+        super(hash)
       }
     end
   end

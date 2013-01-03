@@ -90,6 +90,13 @@ module PerfectQueue
       @client.retry(@task_token, options)
     end
 
+    def update_data!(hash)
+      data = @attributes[:data] || {}
+      merged = data.merge(hash)
+      heartbeat!(:data => merged)
+      @attributes[:data] = merged
+    end
+
     #def to_json
     #  [@key, @task_token, @attributes].to_json
     #end
