@@ -1,4 +1,10 @@
 
+== 2013-01-03 version 0.8.24
+
+* rdb_compat: removed retry_count field
+* Added AcquiredTask#update_data!
+
+
 == 2013-01-03 version 0.8.23
 
 * rdb_compat: added retry_count field
