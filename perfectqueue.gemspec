@@ -10,6 +10,7 @@ Gem::Specification.new do |gem|
   gem.version     = PerfectQueue::VERSION
   gem.authors     = ["Sadayuki Furuhashi"]
   gem.email       = "frsyuki@gmail.com"
+  gem.license     = "Apache 2.0"
   gem.has_rdoc    = false
   gem.files       = `git ls-files`.split("\n")
   gem.test_files  = `git ls-files -- {test,spec,features}/*`.split("\n")
