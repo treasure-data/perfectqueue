@@ -1,4 +1,14 @@
 
+== 2012-09-19 version 0.7.26
+
+* RDBBackend: #issue should not ignore erros excepting duplicate entry error
+
+
+== 2012-09-19 version 0.7.25
+
+* removed depenedency on aws-sdk which is optional
+
+
 == 2012-08-10 version 0.7.24
 
 * Kill running task if an unexpected error occured during extending timeout
