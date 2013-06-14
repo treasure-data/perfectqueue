@@ -146,8 +146,14 @@ SQL
       begin
         n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?);", id, time, data, time, resource, max_running].insert
         return true
-      rescue Sequel::DatabaseError
-        return nil
+      rescue Sequel::DatabaseError => e
+        # Sequel doesn't provide error classes to distinguish duplicate-entry from other
+        # errors like connectivity error. This code assumes the driver is mysql2 and
+        # the error message is "Mysql::ServerError::DupEntry: Duplicate entry"
+        if /: Duplicate entry/
+          return nil
+        end
+        raise e
       end
     }
   end
