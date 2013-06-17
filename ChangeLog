@@ -1,5 +1,10 @@
 
-== 2012-09-19 version 0.7.26
+== 2013-06-16 version 0.7.27
+
+* RDBBackend: #issue should not ignore erros excepting duplicate entry error
+
+
+== 2013-06-14 version 0.7.26
 
 * RDBBackend: #issue should not ignore erros excepting duplicate entry error
 
