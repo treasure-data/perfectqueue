@@ -150,7 +150,7 @@ SQL
         # Sequel doesn't provide error classes to distinguish duplicate-entry from other
         # errors like connectivity error. This code assumes the driver is mysql2 and
         # the error message is "Mysql::ServerError::DupEntry: Duplicate entry"
-        if /: Duplicate entry/
+        if /: Duplicate entry/ =~ e.to_s
           return nil
         end
         raise e
