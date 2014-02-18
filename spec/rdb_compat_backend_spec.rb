@@ -66,5 +66,14 @@ describe Backend::RDBCompatBackend do
     task5.should_not == nil
     task5.type.should == 'user01'
   end
+
+  it 'gzip data compression' do
+    time = Time.now.to_i
+    queue.submit("test", 'user01', {'data'=>'test'}, :now=>time, :user=>'u1', :max_running=>2, :compression=>'gzip')
+
+    task1 = queue.poll(:now=>time+10)
+    task1.should_not == nil
+    task1.data.should == {'data'=>'test'}
+  end
 end
 
