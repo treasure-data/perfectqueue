@@ -144,6 +144,7 @@ SQL
   def submit(id, data, time=Time.now.to_i, resource=nil, max_running=nil)
     connect {
       begin
+        data = Sequel::SQL::Blob.new(data)
         n = @db["INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?);", id, time, data, time, resource, max_running].insert
         return true
       rescue Sequel::DatabaseError => e
