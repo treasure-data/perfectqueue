@@ -153,11 +153,28 @@ SQL
         data = data ? data.dup : {}
         data['type'] = type
 
+        d = data.to_json
+
+        if options[:compression] == 'gzip'
+          require 'zlib'
+          require 'stringio'
+          io = StringIO.new
+          gz = Zlib::GzipWriter.new(io)
+          begin
+            gz.write(d)
+          ensure
+            gz.close
+          end
+          d = io.string
+          d.force_encoding('ASCII-8BIT') if d.respond_to?(:force_encoding)
+          d = Sequel::SQL::Blob.new(d)
+        end
+
         connect {
           begin
             n = @db[
               "INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?)",
-              key, run_at, data.to_json, now, user, max_running
+              key, run_at, d, now, user, max_running
             ].insert
             return Task.new(@client, key)
           rescue Sequel::DatabaseError
