@@ -1,4 +1,10 @@
 
+== 2014-02-18 version 0.8.25
+
+* rdb_compat: submit method supports :compression => 'gzip' option
+* rdb_compat: decompress gzipped data field automatically
+
+
 == 2013-01-03 version 0.8.24
 
 * rdb_compat: removed retry_count field
