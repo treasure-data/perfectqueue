@@ -319,6 +319,8 @@ SQL
         end
       end
 
+      GZIP_MAGIC_BYTES = [0x1f, 0x8b].pack('CC')
+
       def create_attributes(now, row)
         if row[:created_at] === nil
           created_at = nil  # unknown creation time
@@ -336,7 +338,21 @@ SQL
         d = row[:data]
         if d == nil || d == ''
           data = {}
+
         else
+          # automatic gzip decompression
+          d.force_encoding('ASCII-8BIT') if d.respond_to?(:force_encoding)
+          if d[0, 2] == GZIP_MAGIC_BYTES
+            require 'zlib'
+            require 'stringio'
+            gz = Zlib::GzipReader.new(StringIO.new(d))
+            begin
+              d = gz.read
+            ensure
+              gz.close
+            end
+          end
+
           begin
             data = JSON.parse(d)
           rescue
