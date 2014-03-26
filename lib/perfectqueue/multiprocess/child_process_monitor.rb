@@ -43,16 +43,20 @@ module PerfectQueue
         return Time.now.to_i - @last_heartbeat <= limit
       end
 
-      def start_killing(immediate)
+      def start_killing(immediate, delay=0)
         if immediate && !@kill_immediate
           @kill_immediate = true  # escalation
         elsif @kill_start_time
           return
         end
 
-        now = Time.now.to_i
-        kill_child(now, nil)
-        @kill_start_time = now
+        if delay == 0
+          now = Time.now.to_i
+          kill_child(now, nil)
+          @kill_start_time = now
+        else
+          @kill_start_time = now + delay
+        end
       end
 
       def killing_status
@@ -72,7 +76,7 @@ module PerfectQueue
 
         begin
           if Process.waitpid(@pid, Process::WNOHANG)
-            @log.info "Processor exited pid=#{@pid}"
+            @log.info "Processor exited and joined pid=#{@pid}"
             return true
           end
         rescue Errno::ECHILD

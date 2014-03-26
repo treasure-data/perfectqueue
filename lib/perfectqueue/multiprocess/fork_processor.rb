@@ -71,11 +71,11 @@ module PerfectQueue
               end
             rescue EOFError
               @log.error "Heartbeat pipe is closed. Restarting child process id=#{@processor_id} pid=#{c.pid}."
-              c.start_killing(true)
+              c.start_killing(true, 10)
             rescue
               @log.error "Unknown error: #{$!.class}: #{$!}: Restarting child process id=#{@processor_id} pid=#{c.pid}."
               $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
-              c.start_killing(false)
+              c.start_killing(true, 10)
             end
           end
 
