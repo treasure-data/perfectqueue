@@ -37,6 +37,7 @@ module PerfectQueue
         @child_kill_interval = config[:child_kill_interval] || 2.0
         @child_graceful_kill_limit = config[:child_graceful_kill_limit] || nil
         @child_fork_frequency_limit = config[:child_fork_frequency_limit] || 5.0
+        @child_heartbeat_kill_delay = config[:child_heartbeat_kill_delay] || 10
         @log = config[:logger]
         @config = config  # for child process
 
@@ -71,11 +72,11 @@ module PerfectQueue
               end
             rescue EOFError
               @log.error "Heartbeat pipe is closed. Restarting child process id=#{@processor_id} pid=#{c.pid}."
-              c.start_killing(true, 10)
+              c.start_killing(true, @child_heartbeat_kill_delay)
             rescue
               @log.error "Unknown error: #{$!.class}: #{$!}: Restarting child process id=#{@processor_id} pid=#{c.pid}."
               $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
-              c.start_killing(true, 10)
+              c.start_killing(true, @child_heartbeat_kill_delay)
             end
           end
 
