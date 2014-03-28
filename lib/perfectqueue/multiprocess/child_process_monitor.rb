@@ -52,7 +52,7 @@ module PerfectQueue
 
         if delay == 0
           now = Time.now.to_i
-          kill_child(now, nil)
+          kill_children(now, nil)
           @kill_start_time = now
         else
           @kill_start_time = now + delay
@@ -88,7 +88,7 @@ module PerfectQueue
         # resend signal
         now = Time.now.to_i
         if @last_kill_time + kill_interval <= now
-          kill_child(now, graceful_kill_limit)
+          kill_children(now, graceful_kill_limit)
         end
 
         return false
@@ -107,19 +107,41 @@ module PerfectQueue
       end
 
       private
-      def kill_child(now, graceful_kill_limit)
+      def kill_children(now, graceful_kill_limit)
+        kill_now = @kill_immediate || (graceful_kill_limit && @kill_start_time + graceful_kill_limit < now)
+
+        child_tree = list_child_tree(@pid)
+        child_tree << @pid
+        child_tree.each {|child|
+          kill_process(child, kill_now)
+        }
+
+        @last_kill_time = now
+      end
+
+      def list_child_tree(pid)
+        children = []
+        Sys::ProcTable.ps {|process|
+          if process.ppid == pid
+            children.insert(0, process.pid)
+            children = list_child_tree(process.pid) + children
+          end
+        }
+        children
+      end
+
+      def kill_process(pid, kill_now=true)
         begin
-          if @kill_immediate || (graceful_kill_limit && @kill_start_time + graceful_kill_limit < now)
-            @log.debug "sending SIGKILL to pid=#{@pid} for immediate stop"
-            Process.kill(:KILL, @pid)
+          if kill_now
+            @log.debug "sending SIGKILL to pid=#{pid} for immediate stop"
+            Process.kill(:KILL, pid)
           else
-            @log.debug "sending SIGTERM to pid=#{@pid} for graceful stop"
-            Process.kill(:TERM, @pid)
+            @log.debug "sending SIGTERM to pid=#{pid} for graceful stop"
+            Process.kill(:TERM, pid)
           end
         rescue Errno::ESRCH, Errno::EPERM
           # TODO log?
         end
-        @last_kill_time = now
       end
     end
 
