@@ -19,6 +19,8 @@
 module PerfectQueue
   module Multiprocess
 
+    require 'sys/proctable'
+
     class ChildProcessMonitor
       def initialize(log, pid, rpipe)
         @log = log
@@ -108,31 +110,33 @@ module PerfectQueue
 
       private
       def kill_children(now, graceful_kill_limit)
-        kill_now = @kill_immediate || (graceful_kill_limit && @kill_start_time + graceful_kill_limit < now)
+        immediate = @kill_immediate || (graceful_kill_limit && @kill_start_time + graceful_kill_limit < now)
 
-        child_tree = list_child_tree(@pid)
-        child_tree << @pid
-        child_tree.each {|child|
-          kill_process(child, kill_now)
-        }
+        if immediate
+          pids = collect_child_pids([@pid], @pid)
+          pids.reverse_each {|pid|
+            kill_process(child, true)
+          }
+        else
+          kill_process(@pid, false)
+        end
 
         @last_kill_time = now
       end
 
-      def list_child_tree(pid)
-        children = []
+      def collect_child_pids(pids, parent_pid)
         Sys::ProcTable.ps {|process|
-          if process.ppid == pid
-            children.insert(0, process.pid)
-            children = list_child_tree(process.pid) + children
+          if process.ppid == parent_pid
+            pids << process.pid
+            collect_child_pids(pids, process.pid)
           end
         }
-        children
+        pids
       end
 
-      def kill_process(pid, kill_now=true)
+      def kill_process(pid, immediate)
         begin
-          if kill_now
+          if immediate
             @log.debug "sending SIGKILL to pid=#{pid} for immediate stop"
             Process.kill(:KILL, pid)
           else
