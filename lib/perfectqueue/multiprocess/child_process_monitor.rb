@@ -19,6 +19,8 @@
 module PerfectQueue
   module Multiprocess
 
+    require 'sys/proctable'
+
     class ChildProcessMonitor
       def initialize(log, pid, rpipe)
         @log = log
@@ -52,7 +54,7 @@ module PerfectQueue
 
         now = Time.now.to_i
         if delay == 0
-          kill_child(now, nil)
+          kill_children(now, nil)
           @kill_start_time = now
         else
           @kill_start_time = now + delay
@@ -88,7 +90,7 @@ module PerfectQueue
         # resend signal
         now = Time.now.to_i
         if @last_kill_time + kill_interval <= now
-          kill_child(now, graceful_kill_limit)
+          kill_children(now, graceful_kill_limit)
         end
 
         return false
@@ -107,19 +109,43 @@ module PerfectQueue
       end
 
       private
-      def kill_child(now, graceful_kill_limit)
+      def kill_children(now, graceful_kill_limit)
+        immediate = @kill_immediate || (graceful_kill_limit && @kill_start_time + graceful_kill_limit < now)
+
+        if immediate
+          pids = collect_child_pids([@pid], @pid)
+          pids.reverse_each {|pid|
+            kill_process(child, true)
+          }
+        else
+          kill_process(@pid, false)
+        end
+
+        @last_kill_time = now
+      end
+
+      def collect_child_pids(pids, parent_pid)
+        Sys::ProcTable.ps {|process|
+          if process.ppid == parent_pid
+            pids << process.pid
+            collect_child_pids(pids, process.pid)
+          end
+        }
+        pids
+      end
+
+      def kill_process(pid, immediate)
         begin
-          if @kill_immediate || (graceful_kill_limit && @kill_start_time + graceful_kill_limit < now)
-            @log.debug "sending SIGKILL to pid=#{@pid} for immediate stop"
-            Process.kill(:KILL, @pid)
+          if immediate
+            @log.debug "sending SIGKILL to pid=#{pid} for immediate stop"
+            Process.kill(:KILL, pid)
           else
-            @log.debug "sending SIGTERM to pid=#{@pid} for graceful stop"
-            Process.kill(:TERM, @pid)
+            @log.debug "sending SIGTERM to pid=#{pid} for graceful stop"
+            Process.kill(:TERM, pid)
           end
         rescue Errno::ESRCH, Errno::EPERM
           # TODO log?
         end
-        @last_kill_time = now
       end
     end
 
