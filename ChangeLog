@@ -1,4 +1,9 @@
 
+== 2014-03-31 version 0.8.27
+
+* ChildProcessMonitor kills grandchildren as well when it force kills children.
+
+
 == 2014-03-27 version 0.8.26
 
 * Added delay before sending KILL signal to worker process when
