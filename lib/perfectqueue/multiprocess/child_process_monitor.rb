@@ -19,7 +19,7 @@
 module PerfectQueue
   module Multiprocess
 
-    require 'sys/proctable'
+    require 'stringio'
 
     class ChildProcessMonitor
       def initialize(log, pid, rpipe)
@@ -125,10 +125,20 @@ module PerfectQueue
       end
 
       def collect_child_pids(pids, parent_pid)
-        Sys::ProcTable.ps {|process|
-          if process.ppid == parent_pid
-            pids << process.pid
-            collect_child_pids(pids, process.pid)
+        ps_result = `ps -ao pid,ppid`
+        first_line = true
+        StringIO.new(ps_result).each { |line|
+          if first_line
+            first_line = false
+            next
+          end
+
+          pair = line.split(' ')
+          pid = pair[0].to_i
+          ppid = pair[1].to_i
+          if ppid == parent_pid
+            pids << pid
+            collect_child_pids(pids, pid)
           end
         }
         pids
