@@ -19,8 +19,6 @@
 module PerfectQueue
   module Multiprocess
 
-    require 'stringio'
-
     class ChildProcessMonitor
       def initialize(log, pid, rpipe)
         @log = log
