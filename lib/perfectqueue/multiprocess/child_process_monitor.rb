@@ -113,7 +113,7 @@ module PerfectQueue
         immediate = @kill_immediate || (graceful_kill_limit && @kill_start_time + graceful_kill_limit < now)
 
         if immediate
-          pids = collect_child_pids(get_ppid_pid_map, [@pid], @pid)
+          pids = collect_child_pids(get_ppid_pids_map, [@pid], @pid)
           pids.reverse_each {|pid|
             kill_process(child, true)
           }
@@ -124,25 +124,27 @@ module PerfectQueue
         @last_kill_time = now
       end
 
-      def get_ppid_pid_map
-        ppid_pid = {}  # {ppid => pid}
+      def get_ppid_pids_map
+        ppid_pids = {}  # {ppid => [pid]}
         `ps -ao pid,ppid`.each_line do |line|
           if m = /^\s*(\d+)\s+(\d+)\s*$/.match(line)
-            ppid_pid[m[2].to_i] = m[1].to_i
+            (ppid_pids[m[2].to_i] ||= []) << m[1].to_i
           end
         end
-        return ppid_pid
+        return ppid_pids
       # We can ignore errors but not necessary
       #rescue
       #  return {}
       end
 
-      def collect_child_pids(ppid_pid, pids, parent_pid)
-        if pid = ppid_pid[parent_pid]
-          pids << pid
-          collect_child_pids(ppid_pid, pids, pid)
+      def collect_child_pids(ppid_pids, results, parent_pid)
+        if pids = ppid_pids[parent_pid]
+          pids.each {|pid|
+            results << pid
+            collect_child_pids(ppid_pids, results, pid)
+          }
         end
-        pids
+        results
       end
 
       def kill_process(pid, immediate)
