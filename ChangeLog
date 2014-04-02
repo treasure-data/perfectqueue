@@ -1,4 +1,15 @@
 
+== 2014-04-02 version 0.8.29
+
+* Updated ChildProcessMonitor to kill grandchildren to not depend on
+  sys-proctable gem
+
+
+== 2014-03-31 version 0.8.28
+
+* Fixed ChildProcessMonitor when heartbeat pipe is closed
+
+
 == 2014-03-31 version 0.8.27
 
 * ChildProcessMonitor kills grandchildren as well when it force kills children.
