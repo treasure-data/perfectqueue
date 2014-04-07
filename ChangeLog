@@ -1,4 +1,9 @@
 
+== 2014-04-07 version 0.8.30
+
+* Fixed ChildProcessMonitor to kill grandchildren
+
+
 == 2014-04-02 version 0.8.29
 
 * Updated ChildProcessMonitor to kill grandchildren to not depend on
