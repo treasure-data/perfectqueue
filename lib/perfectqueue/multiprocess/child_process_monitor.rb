@@ -113,7 +113,7 @@ module PerfectQueue
         if immediate
           pids = collect_child_pids(get_ppid_pids_map, [@pid], @pid)
           pids.reverse_each {|pid|
-            kill_process(child, true)
+            kill_process(pid, true)
           }
         else
           kill_process(@pid, false)
