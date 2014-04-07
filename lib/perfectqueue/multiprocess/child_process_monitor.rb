@@ -52,8 +52,8 @@ module PerfectQueue
 
         now = Time.now.to_i
         if delay == 0
-          kill_children(now, nil)
           @kill_start_time = now
+          kill_children(now, nil)
         else
           @kill_start_time = now + delay
         end
