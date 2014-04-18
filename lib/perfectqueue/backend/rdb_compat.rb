@@ -36,7 +36,28 @@ module PerfectQueue
 
         #password = config[:password]
         #user = config[:user]
-        @db = Sequel.connect(url, :max_connections=>1)
+
+        case url.split('//',2)[0].to_s
+        when /sqlite/i
+          @db = Sequel.connect(url, :max_connections=>1)
+        when /mysql/i
+          require 'uri'
+
+          uri = URI.parse(url)
+          user = uri.user
+          password = uri.password
+          host = uri.host
+          port = uri.port ? uri.port.to_i : 3306
+          db = uri.path.split('/')[1]
+          if config[:sslca]
+            @db = Sequel.mysql2(db, :user=>user, :password=>password, :host=>host, :port=>port, :max_connections=>1, :sslca=>sslca)
+          else
+            @db = Sequel.mysql2(db, :user=>user, :password=>password, :host=>host, :port=>port, :max_connections=>1)
+          end
+        else
+          raise ConfigError, "'sqlite' and 'mysql' are supported"
+        end
+
         @mutex = Mutex.new
 
         connect {
