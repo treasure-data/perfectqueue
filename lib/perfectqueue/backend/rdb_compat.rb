@@ -44,16 +44,16 @@ module PerfectQueue
           require 'uri'
 
           uri = URI.parse(url)
-          user = uri.user
-          password = uri.password
-          host = uri.host
-          port = uri.port ? uri.port.to_i : 3306
-          db = uri.path.split('/')[1]
-          if config[:sslca]
-            @db = Sequel.mysql2(db, :user=>user, :password=>password, :host=>host, :port=>port, :max_connections=>1, :sslca=>sslca)
-          else
-            @db = Sequel.mysql2(db, :user=>user, :password=>password, :host=>host, :port=>port, :max_connections=>1)
-          end
+          options = {
+            user: uri.user,
+            password: uri.password,
+            host: uri.host,
+            port: uri.port ? uri.port.to_i : 3306
+          }
+          options[:sslca] = config[:sslca] if config[:sslca]
+
+          db_name = uri.path.split('/')[1]
+          @db = Sequel.mysql2(db_name, options)
         else
           raise ConfigError, "'sqlite' and 'mysql' are supported"
         end
