@@ -1,4 +1,8 @@
 
+== 2014-04-21 version 0.8.32
+
+* Added SSL support for MySQL backend
+
 == 2014-04-07 version 0.8.31
 
 * Fixed ChildProcessMonitor to kill grandchildren
