@@ -87,7 +87,9 @@ module PerfectQueue
 
         # resend signal
         now = Time.now.to_i
-        if @last_kill_time + kill_interval <= now
+        if !@last_kill_time
+          @last_kill_time = now
+        elsif @last_kill_time + kill_interval <= now
           kill_children(now, graceful_kill_limit)
         end
 
