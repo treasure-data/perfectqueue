@@ -52,10 +52,10 @@ module PerfectQueue
 
         now = Time.now.to_i
         if delay == 0
-          @kill_start_time = now
+          @last_kill_time = @kill_start_time = now
           kill_children(now, nil)
         else
-          @kill_start_time = now + delay
+          @last_kill_time = @kill_start_time = now + delay
         end
       end
 
@@ -89,6 +89,7 @@ module PerfectQueue
         now = Time.now.to_i
         if @last_kill_time + kill_interval <= now
           kill_children(now, graceful_kill_limit)
+          @last_kill_time = now
         end
 
         return false
@@ -118,8 +119,6 @@ module PerfectQueue
         else
           kill_process(@pid, false)
         end
-
-        @last_kill_time = now
       end
 
       def get_ppid_pids_map
