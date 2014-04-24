@@ -3,11 +3,25 @@ module PerfectQueue
 
 
 class RDBBackend < Backend
-  def initialize(uri, table)
+  def initialize(uri, table, config={})
     require 'sequel'
+    require 'uri'
+
     @uri = uri
     @table = table
-    @db = Sequel.connect(@uri, :max_connections=>1)
+
+    u = URI.parse(@uri)
+    options = {
+      user: u.user,
+      password: u.password,
+      host: u.host,
+      port: u.port ? u.port.to_i : 3306
+    }
+    options[:sslca] = config[:sslca] if config[:sslca]
+    options[:max_connections] = 1
+    db_name = @uri.path.split('/')[1]
+    @db = Sequel.mysql2(db_name, options)
+
     #@last_time = Time.now.to_i
     @mutex = Mutex.new
     #init_db(@uri.split('//',2)[0])
