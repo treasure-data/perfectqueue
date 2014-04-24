@@ -12,13 +12,13 @@ class RDBBackend < Backend
 
     u = URI.parse(@uri)
     options = {
+      max_connections: 1,
       user: u.user,
       password: u.password,
       host: u.host,
       port: u.port ? u.port.to_i : 3306
     }
     options[:sslca] = config[:sslca] if config[:sslca]
-    options[:max_connections] = 1
     db_name = @uri.path.split('/')[1]
     @db = Sequel.mysql2(db_name, options)
 
