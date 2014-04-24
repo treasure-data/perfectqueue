@@ -19,7 +19,7 @@ class RDBBackend < Backend
       port: u.port ? u.port.to_i : 3306
     }
     options[:sslca] = config[:sslca] if config[:sslca]
-    db_name = @uri.path.split('/')[1]
+    db_name = u.path.split('/')[1]
     @db = Sequel.mysql2(db_name, options)
 
     #@last_time = Time.now.to_i
