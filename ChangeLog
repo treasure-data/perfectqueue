@@ -1,4 +1,9 @@
 
+== 2014-04-24 version 0.7.29
+
+* RDBBackend: add MySQL's SSL support
+
+
 == 2014-02-18 version 0.7.28
 
 * RDBBackend: wrap blob data in Sequel::SQL::Blob
