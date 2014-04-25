@@ -1,4 +1,9 @@
 
+== 2014-04-24 version 0.7.30
+
+* RDBBackend: fixed NoMethodError for @url
+
+
 == 2014-04-24 version 0.7.29
 
 * RDBBackend: add MySQL's SSL support
