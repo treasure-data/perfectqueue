@@ -337,9 +337,8 @@ SQL
       def connect(&block)
         now = Time.now.to_i
         @mutex.synchronize do
-          if !@use_connection_pooling || now - @last_time > KEEPALIVE
-            @db.disconnect
-          end
+          # keepalive_timeout
+          @db.disconnect if now - @last_time > KEEPALIVE
 
           count = 0
           begin
@@ -363,6 +362,9 @@ SQL
             @db.disconnect
 
             raise
+          ensure
+            # connection_pooling
+            @db.disconnect if !@use_connection_pooling
           end
         end
       end
