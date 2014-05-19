@@ -48,7 +48,8 @@ module PerfectQueue
             user: uri.user,
             password: uri.password,
             host: uri.host,
-            port: uri.port ? uri.port.to_i : 3306
+            port: uri.port ? uri.port.to_i : 3306,
+            max_connections: 1
           }
           options[:sslca] = config[:sslca] if config[:sslca]
 
@@ -350,9 +351,11 @@ SQL
                 STDERR.puts err + "\n  abort."
               end
             end
-            raise
-          ensure
+
+            STDOUT.puts "disconnects current connection: #{err}"
             @db.disconnect
+
+            raise
           end
         end
       end
