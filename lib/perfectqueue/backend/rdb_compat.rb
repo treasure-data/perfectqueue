@@ -59,6 +59,7 @@ module PerfectQueue
           raise ConfigError, "'sqlite' and 'mysql' are supported"
         end
 
+        @last_time = Time.now.to_i
         @mutex = Mutex.new
 
         connect {
@@ -111,7 +112,7 @@ SQL
 
       attr_reader :db
 
-      #KEEPALIVE = 10
+      KEEPALIVE = 10
       MAX_RETRY = 10
       DEFAULT_DELETE_INTERVAL = 20
 
@@ -329,15 +330,16 @@ SQL
 
       protected
       def connect(&block)
-        #now = Time.now.to_i
+        now = Time.now.to_i
         @mutex.synchronize do
-          #if now - @last_time > KEEPALIVE
-          #  @db.disconnect
-          #end
-          #@last_time = now
+          if now - @last_time > KEEPALIVE
+            @db.disconnect
+          end
+
           count = 0
           begin
             block.call
+            @last_time = now
           rescue
             # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
             if $!.to_s.include?('try restarting transaction')
