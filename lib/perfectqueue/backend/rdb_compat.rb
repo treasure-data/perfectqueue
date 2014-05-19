@@ -55,6 +55,11 @@ module PerfectQueue
 
           db_name = uri.path.split('/')[1]
           @db = Sequel.mysql2(db_name, options)
+          if config[:use_connection_pooling]
+            @use_connection_pooling = config[:use_connection_pooling]
+          else
+            @use_connection_pooling = !!config[:sslca]
+          end
         else
           raise ConfigError, "'sqlite' and 'mysql' are supported"
         end
@@ -332,7 +337,7 @@ SQL
       def connect(&block)
         now = Time.now.to_i
         @mutex.synchronize do
-          if now - @last_time > KEEPALIVE
+          if !@use_connection_pooling || now - @last_time > KEEPALIVE
             @db.disconnect
           end
 
