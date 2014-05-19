@@ -55,8 +55,8 @@ module PerfectQueue
 
           db_name = uri.path.split('/')[1]
           @db = Sequel.mysql2(db_name, options)
-          if config[:use_connection_pooling]
-            @use_connection_pooling = config[:use_connection_pooling]
+          if config.fetch(:use_connection_pooling, nil) != nil
+            @use_connection_pooling = !!config[:use_connection_pooling]
           else
             @use_connection_pooling = !!config[:sslca]
           end
