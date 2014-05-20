@@ -123,7 +123,7 @@ module PerfectQueue
 
       def get_ppid_pids_map
         ppid_pids = {}  # {ppid => [pid]}
-        `ps -axo pid,ppid`.each_line do |line|
+        `ps axo pid,ppid`.each_line do |line|
           if m = /^\s*(\d+)\s+(\d+)\s*$/.match(line)
             (ppid_pids[m[2].to_i] ||= []) << m[1].to_i
           end
