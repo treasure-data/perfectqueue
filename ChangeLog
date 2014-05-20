@@ -1,3 +1,7 @@
+== 2014-05-20 version 0.8.35
+
+* child_process_monitor: fixed 'ps' command options
+
 == 2014-05-20 version 0.8.34
 
 * rdb_compat: use connection pooling. Users can specify as :use_connection_pooling
