@@ -1,3 +1,9 @@
+== 2014-05-20 version 0.8.34
+
+* rdb_compat: use connection pooling. Users can specify as :use_connection_pooling
+  option. If connections use SSL, they are, by default, pooled. On the other hand,
+  if not, by default, connection pooling is not used.
+
 == 2014-04-23 version 0.8.33
 
 * Fixed nil variable exception at ChildProcessMonitor#try_join
