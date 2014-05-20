@@ -358,7 +358,7 @@ SQL
               end
             end
 
-            STDOUT.puts "disconnects current connection: #{err}"
+            STDERR.puts "disconnects current connection: #{err}"
             @db.disconnect
 
             raise
