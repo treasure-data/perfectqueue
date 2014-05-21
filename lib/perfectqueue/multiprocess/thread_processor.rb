@@ -35,9 +35,7 @@ module PerfectQueue
       def run
         @tm.start
         @running_flag.set_region do
-          until @finish_flag.set?
-            run_loop
-          end
+          run_loop
         end
         @tm.join
       ensure
