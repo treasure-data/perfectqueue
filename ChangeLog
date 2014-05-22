@@ -1,6 +1,13 @@
+== 2014-05-21 version 0.8.36
+
+* ThreadProcessor: fixed a problem that it takes next task even if TaskMonitor
+stopped
+
+
 == 2014-05-20 version 0.8.35
 
 * child_process_monitor: fixed 'ps' command options
+
 
 == 2014-05-20 version 0.8.34
 
@@ -8,13 +15,16 @@
   option. If connections use SSL, they are, by default, pooled. On the other hand,
   if not, by default, connection pooling is not used.
 
+
 == 2014-04-23 version 0.8.33
 
 * Fixed nil variable exception at ChildProcessMonitor#try_join
 
+
 == 2014-04-21 version 0.8.32
 
 * Added SSL support for MySQL backend
+
 
 == 2014-04-07 version 0.8.31
 
