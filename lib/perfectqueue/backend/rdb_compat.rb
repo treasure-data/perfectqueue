@@ -99,14 +99,17 @@ SQL
         when /sqlite/i
           # sqlite always locks tables on BEGIN
           @table_lock = nil
+          @table_unlock = nil
         when /mysql/i
           if config[:disable_resource_limit]
             @table_lock = "LOCK TABLES `#{@table}` WRITE"
           else
             @table_lock = "LOCK TABLES `#{@table}` WRITE, `#{@table}` AS T WRITE"
           end
+          @table_unlock = "UNLOCK TABLES"
         else
           @table_lock = "LOCK TABLE `#{@table}`"
+          @table_unlock = nil
         end
 
         @prefetch_break_types = config[:prefetch_break_types] || []
@@ -257,6 +260,10 @@ SQL
             end
 
             @cleanup_interval_count -= 1
+
+            if @table_unlock
+              @db[@table_unlock].update
+            end
           end
           return tasks
         }
