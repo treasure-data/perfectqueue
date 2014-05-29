@@ -1,3 +1,9 @@
+== 2014-05-28 version 0.8.37
+
+* rdb_compat: fixed a deadlock problem that rdb_compat doesn't unlock tables if it
+  uses connection pooling.
+
+
 == 2014-05-21 version 0.8.36
 
 * ThreadProcessor: fixed a problem that it takes next task even if TaskMonitor
