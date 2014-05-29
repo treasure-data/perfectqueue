@@ -261,7 +261,7 @@ SQL
 
             @cleanup_interval_count -= 1
 
-            if @table_unlock
+            if @use_connection_pooling && @table_unlock
               @db[@table_unlock].update
             end
           end
