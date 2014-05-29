@@ -1,3 +1,8 @@
+== 2014-05-29 version 0.8.38
+
+* rdb_compat: 'UNLOCK TABLES' statement is submitted when use_connection_pooling is true.
+
+
 == 2014-05-28 version 0.8.37
 
 * rdb_compat: fixed a deadlock problem that rdb_compat doesn't unlock tables if it
