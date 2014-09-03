@@ -223,7 +223,12 @@ SQL
 
         connect {
           if @cleanup_interval_count <= 0
-            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", now].delete
+            @db.transaction do
+              if @table_lock
+                @db[@table_lock].update
+              end
+              @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", now].delete
+            end
             @cleanup_interval_count = @cleanup_interval
           end
 
