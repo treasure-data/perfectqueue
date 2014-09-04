@@ -221,55 +221,43 @@ SQL
 
         tasks = []
 
-        connect {
-          if @cleanup_interval_count <= 0
-            @db.transaction do
-              if @table_lock
-                @db[@table_lock].update
-              end
-              @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", now].delete
-            end
+        if @cleanup_interval_count <= 0
+          connect_locked {
+            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", now].delete
             @cleanup_interval_count = @cleanup_interval
+          }
+        end
+
+        connect_locked {
+          tasks = []
+          @db.fetch(@sql, now, now, max_acquire) {|row|
+            attributes = create_attributes(nil, row)
+            task_token = Token.new(row[:id])
+            task = AcquiredTask.new(@client, row[:id], attributes, task_token)
+            tasks.push task
+
+            if @prefetch_break_types.include?(attributes[:type])
+              break
+            end
+          }
+
+          if tasks.empty?
+            return nil
           end
 
-          @db.transaction do
-            if @table_lock
-              @db[@table_lock].update
-            end
+          sql = "UPDATE `#{@table}` SET timeout=? WHERE id IN ("
+          params = [sql, next_timeout]
+          tasks.each {|t| params << t.key }
+          sql << (1..tasks.size).map { '?' }.join(',')
+          sql << ") AND created_at IS NOT NULL"
 
-            tasks = []
-            @db.fetch(@sql, now, now, max_acquire) {|row|
-              attributes = create_attributes(nil, row)
-              task_token = Token.new(row[:id])
-              task = AcquiredTask.new(@client, row[:id], attributes, task_token)
-              tasks.push task
-
-              if @prefetch_break_types.include?(attributes[:type])
-                break
-              end
-            }
-
-            if tasks.empty?
-              return nil
-            end
-
-            sql = "UPDATE `#{@table}` SET timeout=? WHERE id IN ("
-            params = [sql, next_timeout]
-            tasks.each {|t| params << t.key }
-            sql << (1..tasks.size).map { '?' }.join(',')
-            sql << ") AND created_at IS NOT NULL"
-
-            n = @db[*params].update
-            if n != tasks.size
-              # TODO table lock doesn't work. error?
-            end
-
-            @cleanup_interval_count -= 1
-
-            if @use_connection_pooling && @table_unlock
-              @db[@table_unlock].update
-            end
+          n = @db[*params].update
+          if n != tasks.size
+            # TODO table lock doesn't work. error?
           end
+
+          @cleanup_interval_count -= 1
+
           return tasks
         }
       end
@@ -346,6 +334,28 @@ SQL
       end
 
       protected
+      def connect_locked(&block)
+        connect {
+          locked = false
+
+          begin
+            @db.transaction do
+              if @table_lock
+                @db[@table_lock].update
+                locked = true
+              end
+
+              return block.call
+            end
+
+          ensure
+            if @use_connection_pooling && locked
+              @db[@table_unlock].update
+            end
+          end
+        }
+      end
+
       def connect(&block)
         now = Time.now.to_i
         @mutex.synchronize do
