@@ -1,3 +1,8 @@
+== 2014-09-05 version 0.8.39
+
+* rdb_compat: 'DELETE' statement acquires table lock to avoid deadlocking
+
+
 == 2014-05-29 version 0.8.38
 
 * rdb_compat: 'UNLOCK TABLES' statement is submitted when use_connection_pooling is true.
