@@ -12,7 +12,7 @@ begin
     gemspec.homepage = "https://github.com/treasure-data/perfectqueue"
     #gemspec.has_rdoc = false
     gemspec.require_paths = ["lib"]
-    gemspec.add_dependency "sequel", "~> 3.26.0"
+    gemspec.add_dependency "sequel", "~> 3.48.0"
     gemspec.test_files = Dir["test/**/*.rb", "test/**/*.sh"]
     gemspec.files = Dir["bin/**/*", "lib/**/*"]
     gemspec.executables = ['perfectqueue']
