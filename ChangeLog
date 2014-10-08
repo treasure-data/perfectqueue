@@ -1,4 +1,9 @@
 
+== 2014-10-08 version 0.7.31
+
+* Upgraded sequal v3.48.0
+
+
 == 2014-04-24 version 0.7.30
 
 * RDBBackend: fixed NoMethodError for @url
