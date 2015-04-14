@@ -141,28 +141,29 @@ module PerfectQueue
     end
 
     def install_signal_handlers(&block)
-      sig = SignalQueue.start do |sig|
-        sig.trap :TERM do
-          stop(false)
+      s = self
+      st = SignalThread.new do |st|
+        st.trap :TERM do
+          s.stop(false)
         end
-        sig.trap :INT do
-          stop(false)
-        end
-
-        sig.trap :QUIT do
-          stop(true)
+        st.trap :INT do
+          s.stop(false)
         end
 
-        sig.trap :USR1 do
-          restart(false)
+        st.trap :QUIT do
+          s.stop(true)
         end
 
-        sig.trap :HUP do
-          restart(true)
+        st.trap :USR1 do
+          s.restart(false)
         end
 
-        sig.trap :USR2 do
-          logrotated
+        st.trap :HUP do
+          s.restart(true)
+        end
+
+        st.trap :USR2 do
+          s.logrotated
         end
 
         trap :CHLD, "SIG_IGN"
@@ -171,7 +172,7 @@ module PerfectQueue
       begin
         block.call
       ensure
-        sig.shutdown
+        st.stop
       end
     end
   end

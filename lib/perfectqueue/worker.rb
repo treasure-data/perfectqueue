@@ -99,30 +99,31 @@ module PerfectQueue
     end
 
     def install_signal_handlers
-      SignalQueue.start do |sig|
-        sig.trap :TERM do
-          stop(false)
+      s = self
+      SignalThread.new do |st|
+        st.trap :TERM do
+          s.stop(false)
         end
 
         # override
-        sig.trap :INT do
-          detach
+        st.trap :INT do
+          s.detach
         end
 
-        sig.trap :QUIT do
-          stop(true)
+        st.trap :QUIT do
+          s.stop(true)
         end
 
-        sig.trap :USR1 do
-          restart(false)
+        st.trap :USR1 do
+          s.restart(false)
         end
 
-        sig.trap :HUP do
-          restart(true)
+        st.trap :HUP do
+          s.restart(true)
         end
 
-        sig.trap :USR2 do
-          logrotated
+        st.trap :USR2 do
+          s.logrotated
         end
       end
     end
