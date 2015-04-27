@@ -1,3 +1,10 @@
+== 2015-04-27 version 0.8.41
+
+* ruby >= 2.0.0 support.
+  SignalQueue is obsolete because it does not run with ruby >= 2.0.0.
+  See ddbf04c9 and use SignalThread instead.
+
+
 == 2014-10-08 version 0.8.40
 
 * upgraded sequel v3.48.0

@@ -18,6 +18,8 @@
 
 module PerfectQueue
 
+  # SignalQueue is obsolete because it does not run with ruby >= 2.0.0.
+  # See ddbf04c9 and use SignalThread instead.
   class SignalQueue
     def self.start(&block)
       st = new(&block)

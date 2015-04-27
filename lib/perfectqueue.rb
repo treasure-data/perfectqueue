@@ -40,6 +40,8 @@ module PerfectQueue
     :TaskStatus => 'perfectqueue/task_status',
     :Worker => 'perfectqueue/worker',
     :Supervisor => 'perfectqueue/supervisor',
+    # SignalQueue is obsolete because it does not run with ruby >= 2.0.0.
+    # See ddbf04c9 and use SignalThread instead.
     :SignalQueue => 'perfectqueue/signal_queue',
     :SignalThread => 'perfectqueue/signal_thread',
     :VERSION => 'perfectqueue/version',
