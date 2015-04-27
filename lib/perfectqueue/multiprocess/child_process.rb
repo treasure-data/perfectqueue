@@ -95,36 +95,37 @@ module PerfectQueue
 
       private
       def install_signal_handlers
-        SignalQueue.start do |sig|
-          sig.trap :TERM do
-            stop(false)
+        s = self
+        SignalThread.new do |st|
+          st.trap :TERM do
+            s.stop(false)
           end
-          sig.trap :INT do
-            stop(false)
-          end
-
-          sig.trap :QUIT do
-            stop(true)
+          st.trap :INT do
+            s.stop(false)
           end
 
-          sig.trap :USR1 do
-            stop(false)
+          st.trap :QUIT do
+            s.stop(true)
           end
 
-          sig.trap :HUP do
-            stop(true)
+          st.trap :USR1 do
+            s.stop(false)
           end
 
-          sig.trap :CONT do
-            stop(false)
+          st.trap :HUP do
+            s.stop(true)
           end
 
-          sig.trap :WINCH do
-            stop(true)
+          st.trap :CONT do
+            s.stop(false)
           end
 
-          sig.trap :USR2 do
-            logrotated
+          st.trap :WINCH do
+            s.stop(true)
+          end
+
+          st.trap :USR2 do
+            s.logrotated
           end
 
           trap :CHLD, "SIG_DFL"

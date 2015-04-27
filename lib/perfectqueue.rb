@@ -41,6 +41,7 @@ module PerfectQueue
     :Worker => 'perfectqueue/worker',
     :Supervisor => 'perfectqueue/supervisor',
     :SignalQueue => 'perfectqueue/signal_queue',
+    :SignalThread => 'perfectqueue/signal_thread',
     :VERSION => 'perfectqueue/version',
   }.each_pair {|k,v|
     autoload k, File.expand_path(v, File.dirname(__FILE__))
