@@ -1,5 +1,7 @@
 # PerfectQueue
 
+[![Build Status](https://travis-ci.org/treasure-data/perfectqueue.svg?branch=master)](https://travis-ci.org/treasure-data/perfectqueue)
+
 PerfectQueue is a highly available distributed queue built on top of RDBMS.
 PerfectQueue provides similar API to Amazon SQS, while PerfectQueue focues on reliability and flexible scheduling rather than scalability.
 
