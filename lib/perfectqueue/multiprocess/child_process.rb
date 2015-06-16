@@ -35,6 +35,7 @@ module PerfectQueue
       # override
       def run
         super
+        @sig.stop
       end
 
       # override
