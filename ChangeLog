@@ -1,3 +1,7 @@
+== 2015-06-16 version 0.8.42
+
+* child_process: remove extra shutdown
+
 == 2015-04-27 version 0.8.41
 
 * ruby >= 2.0.0 support.
