@@ -24,6 +24,7 @@ module QueueTest
         {
           :type => 'rdb_compat',
           :url => "sqlite://#{database_path}",
+          #:url => "mysql2://root:@localhost/test",
           :table => 'test_tasks',
           :processor_type => 'thread',
           :cleanup_interval => 0,  # for test
@@ -37,6 +38,7 @@ module QueueTest
 
       before do
         FileUtils.rm_f database_path
+        #queue.client.backend.instance_variable_get(:@db).run 'DROP TABLE IF EXISTS `test_tasks`'
         queue.client.init_database
       end
 
