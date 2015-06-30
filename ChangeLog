@@ -1,3 +1,7 @@
+== 2015-06-30 version 0.8.43
+
+* child_process: stop after running
+
 == 2015-06-16 version 0.8.42
 
 * child_process: remove extra shutdown
