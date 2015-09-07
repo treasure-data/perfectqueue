@@ -81,7 +81,7 @@ LIMIT ?
 SQL
         else
           @sql = <<SQL
-SELECT id, timeout, data, created_at, resource, max_running, max_running/running AS weight
+SELECT id, timeout, data, created_at, resource, max_running, IFNULL(max_running, 1) / (IFNULL(running, 0) + 1) AS weight
 FROM `#{@table}`
 LEFT JOIN (
   SELECT resource AS res, COUNT(1) AS running
@@ -90,7 +90,7 @@ LEFT JOIN (
   GROUP BY resource
 ) AS R ON resource = res
 WHERE timeout <= ? AND created_at IS NOT NULL AND (max_running-running IS NULL OR max_running-running > 0)
-ORDER BY weight IS NOT NULL, weight DESC, timeout ASC
+ORDER BY weight DESC, timeout ASC
 LIMIT ?
 SQL
         end
