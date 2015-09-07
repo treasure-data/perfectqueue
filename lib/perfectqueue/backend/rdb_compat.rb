@@ -168,8 +168,7 @@ SQL
         now = (options[:now] || Time.now).to_i
 
         connect {
-          #@db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` WHERE !(created_at IS NULL AND timeout <= ?) ORDER BY timeout ASC;", now) {|row|
-          @db.fetch("SELECT id, timeout, data, created_at, resource, max_running FROM `#{@table}` ORDER BY timeout ASC", now) {|row|
+          @db.fetch("SELECT id, timeout, data, created_at, resource, max_running FROM `#{@table}` ORDER BY timeout ASC") {|row|
             attributes = create_attributes(now, row)
             task = TaskWithMetadata.new(@client, row[:id], attributes)
             yield task
