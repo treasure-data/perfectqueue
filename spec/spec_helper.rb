@@ -11,6 +11,9 @@ if ENV['SIMPLE_COV']
   end
 end
 
+require 'coveralls'
+Coveralls.wear!
+
 require 'fileutils'
 
 module QueueTest
