@@ -125,18 +125,21 @@ SQL
       DEFAULT_DELETE_INTERVAL = 20
 
       def init_database(options)
-        sql = %[
-            CREATE TABLE IF NOT EXISTS `#{@table}` (
-              id VARCHAR(256) NOT NULL,
-              timeout INT NOT NULL,
-              data BLOB NOT NULL,
-              created_at INT,
-              resource VARCHAR(256),
-              max_running INT,
-              PRIMARY KEY (id)
-            );]
+        sql = []
+        sql << <<-SQL
+          CREATE TABLE IF NOT EXISTS `#{@table}` (
+            id VARCHAR(255) NOT NULL,
+            timeout INT NOT NULL,
+            data LONGBLOB NOT NULL,
+            created_at INT,
+            resource VARCHAR(255),
+            max_running INT,
+            PRIMARY KEY (id)
+          )
+          SQL
+        sql << "CREATE INDEX `index_#{@table}_on_timeout` ON `#{@table}` (`timeout`)"
         connect {
-          @db.run sql
+          sql.each(&@db.method(:run))
         }
       end
 
