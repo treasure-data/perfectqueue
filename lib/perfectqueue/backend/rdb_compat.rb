@@ -101,14 +101,30 @@ SQL
           @table_lock = nil
           @table_unlock = nil
         when /mysql/i
-          if config[:disable_resource_limit]
-            @table_lock = "LOCK TABLES `#{@table}` WRITE"
-          else
-            @table_lock = "LOCK TABLES `#{@table}` WRITE, `#{@table}` AS T WRITE"
-          end
-          @table_unlock = "UNLOCK TABLES"
+          @table_lock = lambda {
+            locked = nil
+            loop do
+              @db.fetch("SELECT GET_LOCK('#{@table}', #{LOCK_WAIT_TIMEOUT}) locked") do |row|
+                locked = true if row[:locked] == 1
+              end
+              break if locked
+            end
+            # TODO: We will remove the following locking
+            if config[:disable_resource_limit]
+              @db.run("LOCK TABLES `#{@table}` WRITE")
+            else
+              @db.run("LOCK TABLES `#{@table}` WRITE, `#{@table}` AS T WRITE")
+            end
+          }
+          @table_unlock = lambda {
+            # TODO: We will remove the following unlocking
+            @db.run("UNLOCK TABLES")
+            @db.run("SELECT RELEASE_LOCK('#{@table}')")
+          }
         else
-          @table_lock = "LOCK TABLE `#{@table}`"
+          @table_lock = lambda {
+            @db.run("LOCK TABLE `#{@table}`")
+          }
           @table_unlock = nil
         end
 
@@ -122,6 +138,7 @@ SQL
 
       KEEPALIVE = 10
       MAX_RETRY = 10
+      LOCK_WAIT_TIMEOUT = 60
       DEFAULT_DELETE_INTERVAL = 20
 
       def init_database(options)
@@ -344,7 +361,7 @@ SQL
           begin
             @db.transaction do
               if @table_lock
-                @db[@table_lock].update
+                @table_lock.call
                 locked = true
               end
 
@@ -353,7 +370,7 @@ SQL
 
           ensure
             if @use_connection_pooling && locked
-              @db[@table_unlock].update
+              @table_unlock.call
             end
           end
         }
