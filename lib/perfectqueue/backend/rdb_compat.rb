@@ -109,16 +109,8 @@ SQL
               end
               break if locked
             end
-            # TODO: We will remove the following locking
-            if config[:disable_resource_limit]
-              @db.run("LOCK TABLES `#{@table}` WRITE")
-            else
-              @db.run("LOCK TABLES `#{@table}` WRITE, `#{@table}` AS T WRITE")
-            end
           }
           @table_unlock = lambda {
-            # TODO: We will remove the following unlocking
-            @db.run("UNLOCK TABLES")
             @db.run("SELECT RELEASE_LOCK('#{@table}')")
           }
         else
