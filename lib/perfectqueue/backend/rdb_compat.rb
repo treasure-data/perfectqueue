@@ -207,7 +207,7 @@ SQL
 
         connect {
           begin
-            n = @db[
+            @db[
               "INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?)",
               key, run_at, d, now, user, max_running
             ].insert
@@ -441,7 +441,7 @@ SQL
           type = row[:id].split(/\./, 2)[0]
         end
 
-        attributes = {
+        {
           :status => status,
           :created_at => created_at,
           :data => data,
