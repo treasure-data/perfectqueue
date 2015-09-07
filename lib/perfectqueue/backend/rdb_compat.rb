@@ -126,6 +126,7 @@ SQL
 
       def init_database(options)
         sql = []
+        sql << "DROP TABLE IF EXISTS `#{@table}`" if options[:force]
         sql << <<-SQL
           CREATE TABLE IF NOT EXISTS `#{@table}` (
             id VARCHAR(255) NOT NULL,

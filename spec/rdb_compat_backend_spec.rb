@@ -2,12 +2,7 @@ require 'spec_helper'
 require 'perfectqueue/backend/rdb_compat'
 
 describe Backend::RDBCompatBackend do
-  let :queue do
-    FileUtils.rm_f 'spec/test.db'
-    queue = PerfectQueue.open({:type=>'rdb_compat', :url=>'sqlite://spec/test.db', :table=>'test_tasks', :processor_type=>'thread'})
-    queue.client.init_database
-    queue
-  end
+  include QueueTest
 
   let :client do
     queue.client

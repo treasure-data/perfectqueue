@@ -21,14 +21,10 @@ require 'fileutils'
 module QueueTest
   def self.included(mod)
     mod.module_eval do
-      let :database_path do
-        'spec/test.db'
-      end
-
       let :queue_config do
         {
           :type => 'rdb_compat',
-          :url => "sqlite://#{database_path}",
+          :url => "mysql2://root:@localhost/perfectqueue_test",
           :table => 'test_tasks',
           :processor_type => 'thread',
           :cleanup_interval => 0,  # for test
@@ -41,8 +37,7 @@ module QueueTest
       end
 
       before do
-        FileUtils.rm_f database_path
-        queue.client.init_database
+        queue.client.init_database(:force => true)
       end
 
       after do
