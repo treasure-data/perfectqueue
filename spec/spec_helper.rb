@@ -11,8 +11,10 @@ if ENV['SIMPLE_COV']
   end
 end
 
-require 'coveralls'
-Coveralls.wear!
+if ENV["CI"]
+  require 'coveralls'
+  Coveralls.wear!
+end
 
 require 'fileutils'
 
