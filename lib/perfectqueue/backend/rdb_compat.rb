@@ -125,18 +125,20 @@ SQL
       DEFAULT_DELETE_INTERVAL = 20
 
       def init_database(options)
-        sql = %[
+        table_sql = %[
             CREATE TABLE IF NOT EXISTS `#{@table}` (
-              id VARCHAR(256) NOT NULL,
+              id VARCHAR(255) NOT NULL,
               timeout INT NOT NULL,
-              data BLOB NOT NULL,
+              data LONGBLOB NOT NULL,
               created_at INT,
-              resource VARCHAR(256),
+              resource VARCHAR(255),
               max_running INT,
               PRIMARY KEY (id)
             );]
+        index_sql = "CREATE INDEX `index_#{@table}_on_timeout` ON `#{@table}` (`timeout`)"
         connect {
-          @db.run sql
+          @db.run table_sql
+          @db.run index_sql
         }
       end
 
