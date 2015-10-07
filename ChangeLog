@@ -1,3 +1,8 @@
+== 2015-10-07 version 0.8.44
+
+* rdb_compat: Fix fair scheduling.
+* rdb_compat: Use `GET_LOCK` instead of `LOCK TABLES` in MySQL.
+
 == 2015-06-30 version 0.8.43
 
 * child_process: stop after running
