@@ -81,7 +81,7 @@ LIMIT ?
 SQL
         else
           @sql = <<SQL
-SELECT id, timeout, data, created_at, resource, max_running, max_running/running AS weight
+SELECT id, timeout, data, created_at, resource, max_running, IFNULL(max_running, 1) / (IFNULL(running, 0) + 1) AS weight
 FROM `#{@table}`
 LEFT JOIN (
   SELECT resource AS res, COUNT(1) AS running
@@ -90,7 +90,7 @@ LEFT JOIN (
   GROUP BY resource
 ) AS R ON resource = res
 WHERE timeout <= ? AND created_at IS NOT NULL AND (max_running-running IS NULL OR max_running-running > 0)
-ORDER BY weight IS NOT NULL, weight DESC, timeout ASC
+ORDER BY weight DESC, timeout ASC
 LIMIT ?
 SQL
         end
@@ -101,14 +101,22 @@ SQL
           @table_lock = nil
           @table_unlock = nil
         when /mysql/i
-          if config[:disable_resource_limit]
-            @table_lock = "LOCK TABLES `#{@table}` WRITE"
-          else
-            @table_lock = "LOCK TABLES `#{@table}` WRITE, `#{@table}` AS T WRITE"
-          end
-          @table_unlock = "UNLOCK TABLES"
+          @table_lock = lambda {
+            locked = nil
+            loop do
+              @db.fetch("SELECT GET_LOCK('#{@table}', #{LOCK_WAIT_TIMEOUT}) locked") do |row|
+                locked = true if row[:locked] == 1
+              end
+              break if locked
+            end
+          }
+          @table_unlock = lambda {
+            @db.run("SELECT RELEASE_LOCK('#{@table}')")
+          }
         else
-          @table_lock = "LOCK TABLE `#{@table}`"
+          @table_lock = lambda {
+            @db.run("LOCK TABLE `#{@table}`")
+          }
           @table_unlock = nil
         end
 
@@ -122,21 +130,26 @@ SQL
 
       KEEPALIVE = 10
       MAX_RETRY = 10
+      LOCK_WAIT_TIMEOUT = 60
       DEFAULT_DELETE_INTERVAL = 20
 
       def init_database(options)
-        sql = %[
-            CREATE TABLE IF NOT EXISTS `#{@table}` (
-              id VARCHAR(256) NOT NULL,
-              timeout INT NOT NULL,
-              data BLOB NOT NULL,
-              created_at INT,
-              resource VARCHAR(256),
-              max_running INT,
-              PRIMARY KEY (id)
-            );]
+        sql = []
+        sql << "DROP TABLE IF EXISTS `#{@table}`" if options[:force]
+        sql << <<-SQL
+          CREATE TABLE IF NOT EXISTS `#{@table}` (
+            id VARCHAR(255) NOT NULL,
+            timeout INT NOT NULL,
+            data LONGBLOB NOT NULL,
+            created_at INT,
+            resource VARCHAR(255),
+            max_running INT,
+            PRIMARY KEY (id)
+          )
+          SQL
+        sql << "CREATE INDEX `index_#{@table}_on_timeout` ON `#{@table}` (`timeout`)"
         connect {
-          @db.run sql
+          sql.each(&@db.method(:run))
         }
       end
 
@@ -164,8 +177,7 @@ SQL
         now = (options[:now] || Time.now).to_i
 
         connect {
-          #@db.fetch("SELECT id, timeout, data, created_at, resource FROM `#{@table}` WHERE !(created_at IS NULL AND timeout <= ?) ORDER BY timeout ASC;", now) {|row|
-          @db.fetch("SELECT id, timeout, data, created_at, resource, max_running FROM `#{@table}` ORDER BY timeout ASC", now) {|row|
+          @db.fetch("SELECT id, timeout, data, created_at, resource, max_running FROM `#{@table}` ORDER BY timeout ASC") {|row|
             attributes = create_attributes(now, row)
             task = TaskWithMetadata.new(@client, row[:id], attributes)
             yield task
@@ -203,7 +215,7 @@ SQL
 
         connect {
           begin
-            n = @db[
+            @db[
               "INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?)",
               key, run_at, d, now, user, max_running
             ].insert
@@ -341,7 +353,7 @@ SQL
           begin
             @db.transaction do
               if @table_lock
-                @db[@table_lock].update
+                @table_lock.call
                 locked = true
               end
 
@@ -350,7 +362,7 @@ SQL
 
           ensure
             if @use_connection_pooling && locked
-              @db[@table_unlock].update
+              @table_unlock.call
             end
           end
         }
@@ -437,7 +449,7 @@ SQL
           type = row[:id].split(/\./, 2)[0]
         end
 
-        attributes = {
+        {
           :status => status,
           :created_at => created_at,
           :data => data,

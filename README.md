@@ -247,3 +247,13 @@ options for run:
 
     $ perfectqueue run -I. -Ilib -rconfig/boot.rb -rapps/workers/task_dispatch.rb TaskDispatch
 
+## Test
+
+Running spec utilize 'mysql2://root:@localhost/perfectqueue_test' as the connection string.
+Please install MySQL server at localhost then run;
+
+    $ mysql -h localhost -u root -e 'create database perfectqueue_test;'
+
+You can run spec.
+
+    $ bundle exec rake spec

@@ -7,6 +7,9 @@ rvm:
 
 script: "bundle exec rake spec"
 
+before_script:
+  - mysql -e 'create database perfectqueue_test;'
+
 sudo: false
 
 notifications:

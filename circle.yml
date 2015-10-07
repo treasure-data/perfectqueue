@@ -1,0 +1,7 @@
+machine:
+  ruby:
+    version: 2.2.2
+
+database:
+  pre:
+    - mysql -e 'create database perfectqueue_test;'
