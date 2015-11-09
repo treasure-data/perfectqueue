@@ -2,14 +2,14 @@ require 'spec_helper'
 
 class TestHandler < PerfectQueue::Application::Base
   def run
-    puts "TestHandler: #{task}"
+    #puts "TestHandler: #{task}"
     if task.data['raise_error']
       raise "expected error test"
     end
     if num = task.data['sleep']
       sleep num
     end
-    puts "Task finished"
+    #puts "Task finished"
   end
 
   def kill(reason)
@@ -32,6 +32,12 @@ describe Supervisor do
   include QueueTest
 
   before do
+    logger = instance_double("DaemonsLogger")
+    allow(logger).to receive(:info)
+    allow(logger).to receive(:error)
+    allow(logger).to receive(:warn)
+    allow(logger).to receive(:close)
+    allow(DaemonsLogger).to receive(:new){ logger }
     @sv = Supervisor.new(TestApp, queue_config)
     @thread = Thread.new {
       @sv.run
@@ -54,15 +60,14 @@ describe Supervisor do
   it 'term signal' do
     sleep 1
     Process.kill(:TERM, Process.pid)
-    puts "finish expected..."
-    @thread.join
+    expect(@thread.join(3)).to eq(@thread)
   end
 
   it 'quit signal' do
     sleep 1
     Process.kill(:QUIT, Process.pid)
-    puts "finish expected..."
-    @thread.join
+    #puts "finish expected..."
+    expect(@thread.join(3)).to eq(@thread)
   end
 
   it 'kill reason' do
@@ -70,7 +75,7 @@ describe Supervisor do
     queue.submit('task01', 'test', {'sleep'=>4})
     sleep 2
     Process.kill(:TERM, Process.pid)
-    @thread.join
+    expect(@thread.join(3)).to eq(@thread)
   end
 end
 

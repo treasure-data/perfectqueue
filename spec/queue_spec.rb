@@ -16,12 +16,14 @@ describe Queue do
     queue.submit('task01', 'type1', {}, :now=>now)
 
     expect {
+      allow(STDERR).to receive(:puts)
       queue.submit('task01', 'type1', {}, :now=>now+1)
     }.to raise_error AlreadyExistsError
 
     queue['task01'].cancel_request!(:now=>now+2)
 
     expect {
+      allow(STDERR).to receive(:puts)
       queue.submit('task01', 'type1', {}, :now=>now+10)
     }.to raise_error AlreadyExistsError
   end
@@ -195,6 +197,7 @@ describe Queue do
     task01.finish!
 
     expect {
+      allow(STDERR).to receive(:puts)
       queue['task01'].cancel_request!
     }.to raise_error AlreadyFinishedError
   end
@@ -216,11 +219,13 @@ describe Queue do
 
     queue.poll(:now=>now+22)
 
+    allow(STDERR).to receive(:puts)
     expect(queue['task01'].exists?).to eq(false)
   end
 
   it 'get_task_metadata failed with NotFoundError' do
     expect {
+      allow(STDERR).to receive(:puts)
       queue['task99'].metadata
     }.to raise_error NotFoundError
   end
