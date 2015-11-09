@@ -21,7 +21,7 @@ describe Queue do
     loop_num.times do |i|
       queue.submit("#{thread_id}-#{i}", "type01", {}, :now=>now-10)
       task = queue.poll(:now=>now, :alive_time=>60)
-      task.should_not == nil
+      expect(task).not_to eq(nil)
       task.heartbeat!(:now=>now, :alive_time=>70)
       task.finish!(:now=>now, :retention_time=>80)
     end

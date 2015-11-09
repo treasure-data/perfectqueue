@@ -44,8 +44,8 @@ describe Supervisor do
   end
 
   it 'route' do
-    TestHandler.any_instance.should_receive(:run).once
-    RegexpHandler.any_instance.should_receive(:run).once
+    expect_any_instance_of(TestHandler).to receive(:run).once
+    expect_any_instance_of(RegexpHandler).to receive(:run).once
     queue.submit('task01', 'test', {})
     queue.submit('task02', 'reg01', {})
     sleep 1
@@ -66,7 +66,7 @@ describe Supervisor do
   end
 
   it 'kill reason' do
-    TestHandler.any_instance.should_receive(:kill).once #.with(kind_of(PerfectQueue::CancelRequestedError))  # FIXME 'with' dead locks
+    expect_any_instance_of(TestHandler).to receive(:kill).once #.with(kind_of(PerfectQueue::CancelRequestedError))  # FIXME 'with' dead locks
     queue.submit('task01', 'test', {'sleep'=>4})
     sleep 2
     Process.kill(:TERM, Process.pid)
