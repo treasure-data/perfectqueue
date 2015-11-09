@@ -390,6 +390,8 @@ SQL
               else
                 STDERR.puts err + "\n  abort."
               end
+            else
+              err = $!
             end
 
             STDERR.puts "disconnects current connection: #{err}"
