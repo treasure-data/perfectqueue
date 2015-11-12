@@ -19,7 +19,7 @@
 module PerfectQueue
   module Application
 
-    class UndefinedDecisionError
+    class UndefinedDecisionError < StandardError
     end
 
     class Decider
