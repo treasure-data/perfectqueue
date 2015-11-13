@@ -60,10 +60,6 @@ module PerfectQueue
       status == TaskStatus::FINISHED
     end
 
-    def running?
-      status == TaskStatus::RUNNING
-    end
-
     def waiting?
       status == TaskStatus::WAITING
     end
