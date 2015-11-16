@@ -106,10 +106,7 @@ module PerfectQueue
     def replace(immediate, command=[$0]+ARGV)
       return if @replaced_pid
       stop(immediate)
-      @replaced_pid = Process.fork do
-        exec(*command)
-        exit!(127)
-      end
+      @replaced_pid = Process.spawn(*command)
       self
     end
 
