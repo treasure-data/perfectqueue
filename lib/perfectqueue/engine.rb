@@ -56,7 +56,7 @@ module PerfectQueue
           @processors << @processor_class.new(@runner, @processors.size+1, config)
         end
       elsif extra < 0
-        -extra.times do
+        (-extra).times do
           c = @processors.shift
           c.stop(immediate)
           c.join
