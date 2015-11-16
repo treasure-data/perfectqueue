@@ -58,7 +58,7 @@ module PerfectQueue
         when String, Symbol
           pattern = /\A#{Regexp.escape(pattern)}\z/
         else
-          raise ArguementError, "pattern should be String or Regexp but got #{pattern.class}: #{pattern.inspect}"
+          raise ArgumentError, "pattern should be String or Regexp but got #{pattern.class}: #{pattern.inspect}"
         end
 
         @patterns << [pattern, sym]
