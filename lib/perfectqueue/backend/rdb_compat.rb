@@ -40,6 +40,9 @@ module PerfectQueue
         case url.split('//',2)[0].to_s
         when /sqlite/i
           @db = Sequel.connect(url, :max_connections=>1)
+          # sqlite always locks tables on BEGIN
+          @table_lock = nil
+          @table_unlock = nil
         when /mysql/i
           require 'uri'
 
@@ -60,6 +63,18 @@ module PerfectQueue
           else
             @use_connection_pooling = !!config[:sslca]
           end
+          @table_lock = lambda {
+            locked = nil
+            loop do
+              @db.fetch("SELECT GET_LOCK('#{@table}', #{LOCK_WAIT_TIMEOUT}) locked") do |row|
+                locked = true if row[:locked] == 1
+              end
+              break if locked
+            end
+          }
+          @table_unlock = lambda {
+            @db.run("SELECT RELEASE_LOCK('#{@table}')")
+          }
         else
           raise ConfigError, "'sqlite' and 'mysql' are supported"
         end
@@ -93,31 +108,6 @@ WHERE timeout <= ? AND created_at IS NOT NULL AND (max_running-running IS NULL O
 ORDER BY weight DESC, timeout ASC
 LIMIT ?
 SQL
-        end
-
-        case url.split('//',2)[0].to_s
-        when /sqlite/i
-          # sqlite always locks tables on BEGIN
-          @table_lock = nil
-          @table_unlock = nil
-        when /mysql/i
-          @table_lock = lambda {
-            locked = nil
-            loop do
-              @db.fetch("SELECT GET_LOCK('#{@table}', #{LOCK_WAIT_TIMEOUT}) locked") do |row|
-                locked = true if row[:locked] == 1
-              end
-              break if locked
-            end
-          }
-          @table_unlock = lambda {
-            @db.run("SELECT RELEASE_LOCK('#{@table}')")
-          }
-        else
-          @table_lock = lambda {
-            @db.run("LOCK TABLE `#{@table}`")
-          }
-          @table_unlock = nil
         end
 
         @prefetch_break_types = config[:prefetch_break_types] || []
@@ -276,8 +266,6 @@ SQL
 
       # => nil
       def cancel_request(key, options)
-        now = (options[:now] || Time.now).to_i
-
         # created_at=0 means cancel_requested
         connect {
           n = @db["UPDATE `#{@table}` SET created_at=0 WHERE id=? AND created_at IS NOT NULL", key].update
@@ -331,8 +319,6 @@ SQL
               raise PreemptedError, "task key=#{key} does not exist or preempted."
             elsif row[:created_at] == nil
               raise PreemptedError, "task key=#{key} preempted."
-            elsif row[:created_at] <= 0
-              raise CancelRequestedError, "task key=#{key} is cancel requested."
             else # row[:timeout] == next_timeout
               # ok
             end
@@ -390,6 +376,8 @@ SQL
               else
                 STDERR.puts err + "\n  abort."
               end
+            else
+              err = $!
             end
 
             STDERR.puts "disconnects current connection: #{err}"

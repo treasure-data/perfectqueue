@@ -19,7 +19,7 @@
 module PerfectQueue
   module Application
 
-    class UndefinedDecisionError
+    class UndefinedDecisionError < StandardError
     end
 
     class Decider
@@ -39,7 +39,7 @@ module PerfectQueue
         begin
           m = method(type)
         rescue NameError
-          raise UndefinedDecisionError, "Undefined decision #{type} options=#{opt.inspect}"
+          raise UndefinedDecisionError, "Undefined decision #{type} options=#{opts.inspect}"
         end
         m.call(opts)
       end
