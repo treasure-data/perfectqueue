@@ -276,8 +276,6 @@ SQL
 
       # => nil
       def cancel_request(key, options)
-        now = (options[:now] || Time.now).to_i
-
         # created_at=0 means cancel_requested
         connect {
           n = @db["UPDATE `#{@table}` SET created_at=0 WHERE id=? AND created_at IS NOT NULL", key].update
