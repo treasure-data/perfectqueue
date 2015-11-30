@@ -329,8 +329,8 @@ describe Backend::RDBCompatBackend do
         db.submit(key, 'test', nil, {})
         db.cancel_request(key, options)
       end
-      it 'raises PreemptedError' do
-        expect{db.heartbeat(task_token, 0, {})}.to raise_error(CancelRequestedError)
+      it 'returns nil' do
+        expect( db.heartbeat(task_token, 0, {}) ).to be_nil
       end
     end
   end

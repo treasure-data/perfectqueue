@@ -319,8 +319,6 @@ SQL
               raise PreemptedError, "task key=#{key} does not exist or preempted."
             elsif row[:created_at] == nil
               raise PreemptedError, "task key=#{key} preempted."
-            elsif row[:created_at] <= 0
-              raise CancelRequestedError, "task key=#{key} is cancel requested."
             else # row[:timeout] == next_timeout
               # ok
             end
