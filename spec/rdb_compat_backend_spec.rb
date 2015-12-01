@@ -76,7 +76,7 @@ describe Backend::RDBCompatBackend do
   let (:now){ Time.now.to_i }
   let (:client){ double('client') }
   let (:table){ 'test_queues' }
-  let (:config){ {url: 'sqlite://spec/test.db', table: table} }
+  let (:config){ {url: 'mysql://root:@localhost/perfectqueue_test', table: table} }
   let (:db) do
     d = Backend::RDBCompatBackend.new(client, config)
     s = d.db
@@ -94,13 +94,7 @@ describe Backend::RDBCompatBackend do
     it 'raises error unless table' do
       expect{Backend::RDBCompatBackend.new(client, {url: ''})}.to raise_error(ConfigError)
     end
-    it 'supports sqlite' do
-      config = {url: 'sqlite://localhost', table: table}
-      expect(Backend::RDBCompatBackend.new(client, config)).to be_an_instance_of(Backend::RDBCompatBackend)
-      expect(db.instance_variable_get(:@sql)).to include('max_running')
-    end
     it 'supports mysql' do
-      config = {url: 'mysql://root:@localhost/perfectqueue_test', table: table}
       expect(Backend::RDBCompatBackend.new(client, config)).to be_an_instance_of(Backend::RDBCompatBackend)
       expect(db.instance_variable_get(:@sql)).to include('max_running')
     end
