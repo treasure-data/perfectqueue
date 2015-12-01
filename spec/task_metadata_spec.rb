@@ -1,11 +1,11 @@
 require 'spec_helper'
 
 describe PerfectQueue::TaskMetadata do
+  let (:attributes){ double('attributes', delete: nil) }
   describe '#task' do
     it 'returns a task' do
       client = double('client')
       key = double('key')
-      attributes = double('attributes')
       tm = TaskMetadata.new(client, key, attributes)
       task = tm.task
       expect(task).to be_a(Task)
@@ -18,7 +18,6 @@ describe PerfectQueue::TaskMetadata do
     it 'returns inspected string' do
       client = double('client')
       key = double('key')
-      attributes = double('attributes')
       tm = TaskMetadata.new(client, key, attributes)
       expect(tm.inspect).to eq("#<PerfectQueue::TaskMetadata @key=#{key.inspect} @attributes=#{attributes.inspect}>")
     end

@@ -39,4 +39,32 @@ describe PerfectQueue::Task do
       expect(task.inspect).to eq("#<PerfectQueue::Task @key=#{key.inspect}>")
     end
   end
+
+  describe '#update_data!' do
+    context 'PLT-4238' do
+      let (:config){ {type: 'rdb_compat', url: 'mysql://root:@localhost/perfectqueue_test', table: 'test_queues', type: 'rdb_compat'} }
+      let (:client){ Client.new(config) }
+      before do
+        client.backend.db.tap{|s| s.tables.each{|t| s.drop_table(t) } }
+        client.init_database
+        client.submit('key', 'test1', {'foo' => 1}, {compression: 'gzip'})
+      end
+      it 'keeps the data compressed' do
+        tasks = client.acquire
+        expect(tasks.size).to eq 1
+        task = tasks.first
+        expect(task.compression).to eq 'gzip'
+        task.update_data!('hoge' => 2)
+        task.release!
+
+        tasks = client.acquire
+        task = tasks.first
+        expect(tasks.size).to eq 1
+        expect(task.compression).to eq 'gzip'
+        data = task.data
+        expect(data['foo']).to eq 1
+        expect(data['hoge']).to eq 2
+      end
+    end
+  end
 end

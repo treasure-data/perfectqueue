@@ -58,6 +58,7 @@ module PerfectQueue
   class TaskWithMetadata < Task
     def initialize(client, key, attributes)
       super(client, key)
+      @compression = attributes.delete(:compression)
       @attributes = attributes
     end
 
@@ -93,7 +94,7 @@ module PerfectQueue
     def update_data!(hash)
       data = @attributes[:data] || {}
       merged = data.merge(hash)
-      heartbeat!(:data => merged)
+      heartbeat!(data: merged, compression: compression)
       @attributes[:data] = merged
     end
 

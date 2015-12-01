@@ -19,6 +19,7 @@
 module PerfectQueue
   module TaskMetadataAccessors
     attr_reader :attributes
+    attr_reader :compression
 
     def type
       @attributes[:type]
@@ -79,6 +80,7 @@ module PerfectQueue
     def initialize(client, key, attributes)
       super(client)
       @key = key
+      @compression = attributes.delete(:compression)
       @attributes = attributes
     end
 
