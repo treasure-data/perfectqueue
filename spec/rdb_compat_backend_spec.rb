@@ -202,18 +202,28 @@ describe Backend::RDBCompatBackend do
       end
     end
     context 'some tasks' do
+      let :t0 do now - 100 end
       before do
-        db.submit('key1', 'test1', nil, {})
-        db.submit('key2', 'test2', nil, {})
-        db.submit('key3', 'test3', nil, {})
+        db.submit('key1', 'test1', nil, {now: t0})
+        db.submit('key2', 'test2', nil, {now: t0})
+        db.submit('key3', 'test3', nil, {now: t0})
       end
       it 'returns 3 tasks' do
+        now0 = Time.at(t0)
+        expect(now0).to receive(:to_time).exactly(3).times.and_call_original
+        db.list({}) do |task|
+          expect(task.timeout).to eq now0.to_time
+        end
         ary = db.acquire(alive_time, max_acquire, {})
         expect(ary).to be_an_instance_of(Array)
         expect(ary.size).to eq(3)
         expect(ary[0]).to be_an_instance_of(AcquiredTask)
         expect(ary[1]).to be_an_instance_of(AcquiredTask)
         expect(ary[2]).to be_an_instance_of(AcquiredTask)
+
+        now1 = Time.at(now + alive_time)
+        expect(now1).to receive(:to_time).exactly(3).times.and_call_original
+        db.list({}){|task| expect(task.timeout).to eq now1.to_time }
       end
       it 'returns 2 tasks' do
         db.instance_variable_set(:@prefetch_break_types, 'test2')
@@ -380,6 +390,7 @@ describe Backend::RDBCompatBackend do
         type: 'foo.bar',
         message: nil,
         node: nil,
+        compression: nil,
       )
     end
     it 'returns {} if data\'s JSON is broken' do
@@ -395,6 +406,7 @@ describe Backend::RDBCompatBackend do
         type: 'foo',
         message: nil,
         node: nil,
+        compression: nil,
       )
     end
     it 'uses id[/\A[^.]*/] if type is empty string' do
@@ -410,6 +422,7 @@ describe Backend::RDBCompatBackend do
         type: 'foo',
         message: nil,
         node: nil,
+        compression: nil,
       )
     end
     it 'uses id[/\A[^.]*/] if type is nil' do
@@ -424,6 +437,7 @@ describe Backend::RDBCompatBackend do
         type: 'foo',
         message: nil,
         node: nil,
+        compression: nil,
       )
     end
   end
@@ -473,6 +487,7 @@ describe Backend::RDBCompatBackend do
           max_running: max_running,
           message: nil,
           node: nil,
+          compression: nil,
         )
       end
       it 'returns {} if data\'s JSON is broken' do

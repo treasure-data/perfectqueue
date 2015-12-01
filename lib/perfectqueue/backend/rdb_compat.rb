@@ -175,6 +175,24 @@ SQL
         }
       end
 
+      def compress_data(data, compression)
+        if compression == 'gzip'
+          require 'zlib'
+          require 'stringio'
+          io = StringIO.new
+          io.set_encoding(Encoding::ASCII_8BIT)
+          gz = Zlib::GzipWriter.new(io)
+          begin
+            gz.write(data)
+          ensure
+            gz.close
+          end
+          data = io.string
+          data = Sequel::SQL::Blob.new(data)
+        end
+        data
+      end
+
       # => Task
       def submit(key, type, data, options)
         now = (options[:now] || Time.now).to_i
@@ -185,23 +203,7 @@ SQL
         max_running = options[:max_running]
         data = data ? data.dup : {}
         data['type'] = type
-
-        d = data.to_json
-
-        if options[:compression] == 'gzip'
-          require 'zlib'
-          require 'stringio'
-          io = StringIO.new
-          gz = Zlib::GzipWriter.new(io)
-          begin
-            gz.write(d)
-          ensure
-            gz.close
-          end
-          d = io.string
-          d.force_encoding('ASCII-8BIT') if d.respond_to?(:force_encoding)
-          d = Sequel::SQL::Blob.new(d)
-        end
+        d = compress_data(data.to_json, options[:compression])
 
         connect {
           begin
@@ -306,7 +308,7 @@ SQL
         params = [sql, next_timeout]
         if data
           sql << ", data=?"
-          params << data.to_json
+          params << compress_data(data.to_json, options[:compression])
         end
         sql << " WHERE id=? AND created_at IS NOT NULL"
         params << key
@@ -394,6 +396,7 @@ SQL
       GZIP_MAGIC_BYTES = [0x1f, 0x8b].pack('CC')
 
       def create_attributes(now, row)
+        compression = nil
         if row[:created_at] === nil
           created_at = nil  # unknown creation time
           status = TaskStatus::FINISHED
@@ -417,6 +420,7 @@ SQL
           if d[0, 2] == GZIP_MAGIC_BYTES
             require 'zlib'
             require 'stringio'
+            compression = 'gzip'
             gz = Zlib::GzipReader.new(StringIO.new(d))
             begin
               d = gz.read
@@ -447,6 +451,7 @@ SQL
           :max_running => row[:max_running],
           :message => nil,  # not supported
           :node => nil,  # not supported
+          :compression => compression,
         }
       end
 
