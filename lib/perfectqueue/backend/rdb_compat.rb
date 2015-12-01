@@ -37,13 +37,7 @@ module PerfectQueue
         #password = config[:password]
         #user = config[:user]
 
-        case url.split('//',2)[0].to_s
-        when /sqlite/i
-          @db = Sequel.connect(url, :max_connections=>1)
-          # sqlite always locks tables on BEGIN
-          @table_lock = nil
-          @table_unlock = nil
-        when /mysql/i
+        if /\Amysql/i =~ url
           require 'uri'
 
           uri = URI.parse(url)
@@ -76,7 +70,7 @@ module PerfectQueue
             @db.run("SELECT RELEASE_LOCK('#{@table}')")
           }
         else
-          raise ConfigError, "'sqlite' and 'mysql' are supported"
+          raise ConfigError, "only 'mysql' is supported"
         end
 
         @last_time = Time.now.to_i
