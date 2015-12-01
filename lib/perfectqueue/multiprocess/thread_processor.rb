@@ -121,7 +121,7 @@ module PerfectQueue
       end
 
       def process(task)
-        @log.info "acquired task task=#{task.key} id=#{@processor_id}: #{task.inspect}"
+        @log.info "acquired task task=#{task.key} id=#{@processor_id}"
         begin
           r = @runner.new(task)
           @tm.set_task(task, r)
