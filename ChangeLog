@@ -1,3 +1,10 @@
+== 2015-12-02 version 0.8.45
+
+* remove sqlite3 support
+* fix #3
+* add specs
+* fix other trivial bugs
+
 == 2015-10-07 version 0.8.44
 
 * rdb_compat: Fix fair scheduling.
