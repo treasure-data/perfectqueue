@@ -278,16 +278,32 @@ SQL
 
       # => nil
       def finish(task_token, retention_time, options)
-        now = (options[:now] || Time.now).to_i
-        delete_timeout = now + retention_time
         key = task_token.key
 
-        connect {
-          n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL", delete_timeout, key].update
-          if n <= 0
-            raise IdempotentAlreadyFinishedError, "task key=#{key} does not exist or already finished."
-          end
-        }
+        # What is the expected failure is big problem.
+        # I assumed it as temporally failure like failover of Multi-AZ RDS
+        # (Yes, TD doesn't use Multi-AZ but it seems a reasonable condition for
+        #  default retry logic)
+        #
+        # Amazon says "Failovers, ..., typically complete within one to two minutes."
+        # https://aws.amazon.com/rds/faqs/#45
+        #
+        # Since mysql2's default of connect_timeout is 120 second, single retry is
+        # sufficient. (But I use 2)
+        i = 0
+        begin
+          connect {
+            now = (options[:now] || Time.now).to_i
+            delete_timeout = now + retention_time
+            n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL", delete_timeout, key].update
+            if n <= 0
+              raise IdempotentAlreadyFinishedError, "task key=#{key} does not exist or already finished."
+            end
+          }
+        rescue Sequel::DatabaseConnectionError
+          retry if (i += 1) <= 2
+          raise
+        end
         nil
       end
 

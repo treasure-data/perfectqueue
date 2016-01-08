@@ -294,6 +294,24 @@ describe Backend::RDBCompatBackend do
         expect{db.finish(task_token, retention_time, options)}.to raise_error(IdempotentAlreadyFinishedError)
       end
     end
+    context 'fail to connect' do
+      before do
+        db.submit(key, 'test', nil, {})
+      end
+      it 'retries 3 times' do
+        orig_host = db.db.opts[:host]
+        test_host = '192.0.2.1'
+        db.db.opts[:host] = test_host
+        db.db.opts[:connect_timeout] = 1
+        expect(db.db).to receive(:'[]').and_call_original
+        expect(db.db).to receive(:'[]') do
+          db.db.opts[:host] = orig_host
+          raise Sequel::DatabaseConnectionError
+        end
+        expect(db.db).to receive(:'[]').and_call_original
+        expect(db.finish(task_token, retention_time, options)).to be_nil
+      end
+    end
   end
 
   context '#heartbeat' do
