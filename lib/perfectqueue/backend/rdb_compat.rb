@@ -333,15 +333,12 @@ SQL
           locked = false
 
           begin
-            @db.transaction do
-              if @table_lock
-                @table_lock.call
-                locked = true
-              end
-
-              return block.call
+            if @table_lock
+              @table_lock.call
+              locked = true
             end
 
+            return block.call
           ensure
             if @use_connection_pooling && locked
               @table_unlock.call
