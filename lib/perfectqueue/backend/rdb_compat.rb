@@ -67,7 +67,7 @@ module PerfectQueue
             end
           }
           @table_unlock = lambda {
-            @db.run("SELECT RELEASE_LOCK('#{@table}')")
+            @db.run("DO RELEASE_LOCK('#{@table}')")
           }
         else
           raise ConfigError, "only 'mysql' is supported"
