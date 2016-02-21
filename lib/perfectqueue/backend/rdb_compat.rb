@@ -221,7 +221,10 @@ SQL
 
         if @cleanup_interval_count <= 0
           connect_locked {
-            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", now].delete
+            ids = @db.fetch("SELECT t.id AS id FROM (SELECT id, created_at FROM `#{@table}` WHERE timeout <= ? ORDER BY timeout DESC LIMIT 1000) t WHERE created_at IS NULL", now).map {|row| row[:id] }
+            unless ids.empty?
+              @db["DELETE FROM `#{@table}` WHERE id IN (#{(1..ids.size).map{'?'}.join(',')})", *ids].delete
+            end
             @cleanup_interval_count = @cleanup_interval
           }
         end
