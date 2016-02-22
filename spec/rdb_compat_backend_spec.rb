@@ -275,7 +275,7 @@ describe Backend::RDBCompatBackend do
     let (:key){ 'key' }
     let (:task_token){ Backend::RDBCompatBackend::Token.new(key) }
     let (:retention_time) { 42 }
-    let (:delete_timeout){ now + retention_time }
+    let (:delete_timeout){ now - Backend::RDBCompatBackend::DELETE_OFFSET + retention_time }
     let (:options){ {now: now} }
     context 'have the task' do
       before do

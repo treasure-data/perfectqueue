@@ -21,6 +21,18 @@ module PerfectQueue
     class RDBCompatBackend
       include BackendHelper
 
+      #
+      # == timeout model
+      #
+      # 0 ---- now-1Bs ---- retention ---|----- now -- alive ------- FUTURE
+      #   ~~~~~~~^  to be deleted ^      |~~~^~~~       ^ running or in-queue
+      #    DELETE          13_0000_0000->|   to be acquired
+      #
+      # NOTE: this architecture introduces Year 2042 problem.
+      #
+      DELETE_OFFSET = 10_0000_0000
+      EVENT_HORIZON = 13_0000_0000 # 2011-03-13 07:06:40 UTC
+
       class Token < Struct.new(:key)
       end
 
@@ -84,7 +96,8 @@ module PerfectQueue
           @sql = <<SQL
 SELECT id, timeout, data, created_at, resource
 FROM `#{@table}`
-WHERE timeout <= ? AND timeout <= ? AND created_at IS NOT NULL
+WHERE #{EVENT_HORIZON} < timeout AND timeout <= ? AND timeout <= ?
+      AND created_at IS NOT NULL
 ORDER BY timeout ASC
 LIMIT ?
 SQL
@@ -98,7 +111,9 @@ LEFT JOIN (
   WHERE timeout > ? AND created_at IS NOT NULL AND resource IS NOT NULL
   GROUP BY resource
 ) AS R ON resource = res
-WHERE timeout <= ? AND created_at IS NOT NULL AND (max_running-running IS NULL OR max_running-running > 0)
+WHERE #{EVENT_HORIZON} < timeout AND timeout <= ?
+      AND created_at IS NOT NULL
+      AND (max_running-running IS NULL OR max_running-running > 0)
 ORDER BY weight DESC, timeout ASC
 LIMIT ?
 SQL
@@ -220,8 +235,9 @@ SQL
         tasks = []
 
         if @cleanup_interval_count <= 0
-          connect_locked {
-            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", now].delete
+          delete_timeout = now - DELETE_OFFSET
+          connect { # TODO: HERE should be still connect_locked ?
+            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", delete_timeout].delete
             @cleanup_interval_count = @cleanup_interval
           }
         end
@@ -279,7 +295,7 @@ SQL
       # => nil
       def finish(task_token, retention_time, options)
         now = (options[:now] || Time.now).to_i
-        delete_timeout = now + retention_time
+        delete_timeout = now - DELETE_OFFSET + retention_time
         key = task_token.key
 
         connect {
