@@ -40,3 +40,33 @@ describe PerfectQueue::TaskMonitor do
     end
   end
 end
+
+describe PerfectQueue::TaskMonitorHook do
+  let (:task_monitor) do
+    tm = PerfectQueue::TaskMonitor.new(logger: double('logger').as_null_object)
+  end
+  let (:task) do
+    obj = double('task', key: 'foo', finish!: 1, release!: 1, retry!: 1, cancel_request!: 1, update_data!: 1)
+    obj.extend(TaskMonitorHook)
+    obj.instance_variable_set(:@log, double('log', info: nil))
+    obj.instance_variable_set(:@task_monitor, task_monitor)
+    obj
+  end
+  before do
+  end
+  describe 'finish!' do
+    it { task.finish! }
+  end
+  describe 'release!' do
+    it { task.release! }
+  end
+  describe 'retry!' do
+    it { task.retry! }
+  end
+  describe 'cancel_request!' do
+    it { task.cancel_request! }
+  end
+  describe 'update_data!' do
+    it { task.update_data!(double) }
+  end
+end
