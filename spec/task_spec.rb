@@ -42,7 +42,7 @@ describe PerfectQueue::Task do
 
   describe '#update_data!' do
     context 'PLT-4238' do
-      let (:config){ {type: 'rdb_compat', url: 'mysql://root:@localhost/perfectqueue_test', table: 'test_queues'} }
+      let (:config){ {type: 'rdb_compat', url: 'mysql2://root:@localhost/perfectqueue_test', table: 'test_queues'} }
       let (:client){ Client.new(config) }
       before do
         client.backend.db.tap{|s| s.tables.each{|t| s.drop_table(t) } }
