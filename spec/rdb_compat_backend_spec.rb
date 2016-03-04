@@ -228,6 +228,26 @@ describe Backend::RDBCompatBackend do
         expect(ary[1]).to be_an_instance_of(AcquiredTask)
       end
     end
+    context 'stole a task' do
+      let :t0 do now - 100 end
+      before do
+        db.submit('key1', 'test1', nil, {now: t0})
+        db.submit('key2', 'test2', nil, {now: t0})
+        db.submit('key3', 'test3', nil, {now: t0})
+      end
+      it 'returns nil' do
+        # hook and steal a task
+        mock = double('prefetch_break_types')
+        db.instance_variable_set(:@prefetch_break_types, mock)
+        allow(mock).to receive(:include?) do
+          db.db['UPDATE `test_queues` SET timeout=? WHERE id=?', now+300, 'key2'].update
+          false
+        end
+
+        ary = db.acquire(alive_time, max_acquire, {})
+        expect(ary).to be_nil
+      end
+    end
   end
 
   context '#cancel_request' do
