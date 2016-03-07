@@ -259,15 +259,16 @@ SQL
             return nil
           end
 
-          sql = "UPDATE `#{@table}` SET timeout=? WHERE id IN ("
-          params = [sql, next_timeout]
+          sql = "UPDATE `#{@table}` SET timeout=? WHERE timeout <= ? AND id IN ("
+          params = [sql, next_timeout, now]
           tasks.each {|t| params << t.key }
           sql << (1..tasks.size).map { '?' }.join(',')
           sql << ") AND created_at IS NOT NULL"
 
           n = @db[*params].update
           if n != tasks.size
-            # TODO table lock doesn't work. error?
+            # NOTE table lock doesn't work. error!
+            return nil
           end
 
           @cleanup_interval_count -= 1
