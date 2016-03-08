@@ -76,7 +76,7 @@ describe Backend::RDBCompatBackend do
   let (:now){ Time.now.to_i }
   let (:client){ double('client') }
   let (:table){ 'test_queues' }
-  let (:config){ {url: 'mysql://root:@localhost/perfectqueue_test', table: table} }
+  let (:config){ {url: 'mysql2://root:@localhost/perfectqueue_test', table: table} }
   let (:db) do
     d = Backend::RDBCompatBackend.new(client, config)
     s = d.db
@@ -103,12 +103,12 @@ describe Backend::RDBCompatBackend do
       expect{Backend::RDBCompatBackend.new(client, config)}.to raise_error(ConfigError)
     end
     it 'with use_connection_pooling' do
-      config = {url: 'mysql://root:@localhost/perfectqueue_test', table: table, use_connection_pooling: true}
+      config = {url: 'mysql2://root:@localhost/perfectqueue_test', table: table, use_connection_pooling: true}
       db = Backend::RDBCompatBackend.new(client, config)
       expect(db.instance_variable_get(:@use_connection_pooling)).to eq true
     end
     it 'disable_resource_limit' do
-      config = {url: 'mysql://root:@localhost/perfectqueue_test', table: table, disable_resource_limit: true}
+      config = {url: 'mysql2://root:@localhost/perfectqueue_test', table: table, disable_resource_limit: true}
       db = Backend::RDBCompatBackend.new(client, config)
       expect(db.instance_variable_get(:@sql)).not_to include('max_running')
     end
@@ -462,7 +462,7 @@ describe Backend::RDBCompatBackend do
     end
     it 'ensures to unlock on error with use_connection_pooling' do
       #expect(STDERR).to receive(:puts)
-      config = {url: 'mysql://root:@localhost/perfectqueue_test', table: table, use_connection_pooling: true}
+      config = {url: 'mysql2://root:@localhost/perfectqueue_test', table: table, use_connection_pooling: true}
       db1 = Backend::RDBCompatBackend.new(client, config)
       #expect{ db.__send__(:connect_locked){ raise } }.to raise_error(RuntimeError)
       db1.__send__(:connect_locked){ ret }

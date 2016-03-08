@@ -46,24 +46,8 @@ module PerfectQueue
           raise ConfigError, ":table option is required"
         end
 
-        #password = config[:password]
-        #user = config[:user]
-
-        if /\Amysql/i =~ url
-          require 'uri'
-
-          uri = URI.parse(url)
-          options = {
-            user: uri.user,
-            password: uri.password,
-            host: uri.host,
-            port: uri.port ? uri.port.to_i : 3306,
-            max_connections: 1
-          }
-          options[:sslca] = config[:sslca] if config[:sslca]
-
-          db_name = uri.path.split('/')[1]
-          @db = Sequel.mysql2(db_name, options)
+        if /\Amysql2:/i =~ url
+          @db = Sequel.connect(url, {max_connections: 1, sslca: config[:sslca]})
           if config.fetch(:use_connection_pooling, nil) != nil
             @use_connection_pooling = !!config[:use_connection_pooling]
           else
