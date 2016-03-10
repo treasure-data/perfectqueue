@@ -241,7 +241,7 @@ options for run:
 
 ### force finish a tasks
 
-    $ perfectqueue cancel_request k2
+    $ perfectqueue force_finish k2
 
 ### running a worker
 
