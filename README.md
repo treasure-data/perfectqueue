@@ -189,6 +189,14 @@ additional configuration:
 
 Not implemented yet.
 
+## config/perfectqueue.yml Example
+
+```
+development:
+  type: rdb_compat
+  url: mysql2://root:@localhost:3306/perfectqueue
+  table: queues
+```
 
 ## Command line management tool
 
