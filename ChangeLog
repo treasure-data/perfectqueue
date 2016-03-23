@@ -1,3 +1,10 @@
+== 2016-03-23 version 0.8.46
+
+* Introduce new timeout model
+  NOTE: this change requires migration process like actual DELETE query
+  see WHERE timeout <= now AND created_at IS NULL.
+  80946079a91dd89c8e371e9b3fdd7f4805c7e4f9
+
 == 2015-12-02 version 0.8.45
 
 * remove sqlite3 support
