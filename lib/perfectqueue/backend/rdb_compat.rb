@@ -39,7 +39,6 @@ module PerfectQueue
       def initialize(client, config)
         super
 
-        require 'sequel'
         url = config[:url]
         @table = config[:table]
         unless @table
@@ -170,8 +169,6 @@ SQL
 
       def compress_data(data, compression)
         if compression == 'gzip'
-          require 'zlib'
-          require 'stringio'
           io = StringIO.new
           io.set_encoding(Encoding::ASCII_8BIT)
           gz = Zlib::GzipWriter.new(io)
@@ -410,8 +407,6 @@ SQL
           # automatic gzip decompression
           d.force_encoding('ASCII-8BIT') if d.respond_to?(:force_encoding)
           if d[0, 2] == GZIP_MAGIC_BYTES
-            require 'zlib'
-            require 'stringio'
             compression = 'gzip'
             gz = Zlib::GzipReader.new(StringIO.new(d))
             begin

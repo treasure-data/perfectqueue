@@ -19,8 +19,6 @@ module PerfectQueue
 
   class SignalThread < Thread
     def initialize(&block)
-      require 'thread'
-
       @handlers = {}
 
       @mutex = Mutex.new

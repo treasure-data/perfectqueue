@@ -16,45 +16,39 @@
 #    limitations under the License.
 #
 
+require 'json'
+require 'thread'  # Mutex, CoditionVariable
+require 'zlib'
+require 'stringio'
+require 'sequel'
+require 'logger'
+require 'fcntl'
+
+require_relative 'perfectqueue/application'
+require_relative 'perfectqueue/backend'
+require_relative 'perfectqueue/backend/rdb_compat'
+require_relative 'perfectqueue/blocking_flag'
+require_relative 'perfectqueue/client'
+require_relative 'perfectqueue/daemons_logger'
+require_relative 'perfectqueue/engine'
+require_relative 'perfectqueue/model'
+require_relative 'perfectqueue/queue'
+require_relative 'perfectqueue/runner'
+require_relative 'perfectqueue/task_monitor'
+require_relative 'perfectqueue/task_metadata'
+require_relative 'perfectqueue/task_status'
+require_relative 'perfectqueue/task'
+require_relative 'perfectqueue/worker'
+require_relative 'perfectqueue/supervisor'
+require_relative 'perfectqueue/signal_thread'
+require_relative 'perfectqueue/version'
+require_relative 'perfectqueue/multiprocess/thread_processor'
+require_relative 'perfectqueue/multiprocess/child_process'
+require_relative 'perfectqueue/multiprocess/child_process_monitor'
+require_relative 'perfectqueue/multiprocess/fork_processor'
+require_relative 'perfectqueue/error'
+
 module PerfectQueue
-  require 'json'
-  require 'thread'  # Mutex, CoditionVariable
-
-  {
-    :Application => 'perfectqueue/application',
-    :Backend => 'perfectqueue/backend',
-    :BackendHelper => 'perfectqueue/backend',
-    :BlockingFlag => 'perfectqueue/blocking_flag',
-    :Client => 'perfectqueue/client',
-    :DaemonsLogger => 'perfectqueue/daemons_logger',
-    :Engine => 'perfectqueue/engine',
-    :Model => 'perfectqueue/model',
-    :Queue => 'perfectqueue/queue',
-    :Runner => 'perfectqueue/runner',
-    :Task => 'perfectqueue/task',
-    :TaskWithMetadata => 'perfectqueue/task',
-    :AcquiredTask => 'perfectqueue/task',
-    :TaskMetadata => 'perfectqueue/task_metadata',
-    :TaskMonitor => 'perfectqueue/task_monitor',
-    :TaskMetadataAccessors => 'perfectqueue/task_metadata',
-    :TaskStatus => 'perfectqueue/task_status',
-    :Worker => 'perfectqueue/worker',
-    :Supervisor => 'perfectqueue/supervisor',
-    # SignalQueue is obsolete because it does not run with ruby >= 2.0.0.
-    # See ddbf04c9 and use SignalThread instead.
-    :SignalQueue => 'perfectqueue/signal_queue',
-    :SignalThread => 'perfectqueue/signal_thread',
-    :VERSION => 'perfectqueue/version',
-  }.each_pair {|k,v|
-    autoload k, File.expand_path(v, File.dirname(__FILE__))
-  }
-  [
-    'perfectqueue/multiprocess',
-    'perfectqueue/error',
-  ].each {|v|
-    require File.expand_path(v, File.dirname(__FILE__))
-  }
-
   def self.open(config, &block)
     c = Client.new(config)
     begin

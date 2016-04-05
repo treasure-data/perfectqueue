@@ -24,7 +24,6 @@ module PerfectQueue
         @runner = runner
         @processor_id = processor_id
 
-        require 'fcntl'
         @stop = false
         @cpm = nil
         @last_fork_time = 0
