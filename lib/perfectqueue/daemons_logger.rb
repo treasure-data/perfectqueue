@@ -18,8 +18,6 @@
 
 module PerfectQueue
 
-  require 'logger'
-
   class DaemonsLogger < Logger
     def initialize(dev, shift_age=0, shift_size=1048576)
       @stdout_hook = false

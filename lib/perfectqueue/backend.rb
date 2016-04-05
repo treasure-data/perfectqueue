@@ -19,17 +19,8 @@
 module PerfectQueue
   module Backend
     def self.new_backend(client, config)
-      case config[:type]
-      when nil
-        raise ConfigError, "'type' option is not set"
-      when 'rdb_compat'
-        require_backend('rdb_compat')
-        RDBCompatBackend.new(client, config)
-      end
-    end
-
-    def self.require_backend(fname)
-      require File.expand_path("backend/#{fname}", File.dirname(__FILE__))
+      raise ConfigError, "'type' must be 'rdb_compat'" if config[:type] != 'rdb_compat'
+      RDBCompatBackend.new(client, config)
     end
   end
 
@@ -46,4 +37,3 @@ module PerfectQueue
     end
   end
 end
-

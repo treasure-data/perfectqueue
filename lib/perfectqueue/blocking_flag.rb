@@ -20,7 +20,6 @@ module PerfectQueue
 
   class BlockingFlag
     def initialize
-      require 'thread'
       @set = false
       @mutex = Mutex.new
       @cond = ConditionVariable.new
