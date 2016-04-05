@@ -243,7 +243,7 @@ SQL
             return nil
           end
 
-          sql = "UPDATE `#{@table}` SET timeout=? WHERE timeout <= ? AND id IN ("
+          sql = "UPDATE `#{@table}` FORCE INDEX (PRIMARY) SET timeout=? WHERE timeout <= ? AND id IN ("
           params = [sql, next_timeout, now]
           tasks.each {|t| params << t.key }
           sql << (1..tasks.size).map { '?' }.join(',')
