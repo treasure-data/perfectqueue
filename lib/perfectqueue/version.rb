@@ -1,3 +1,3 @@
 module PerfectQueue
-  VERSION = "0.8.46"
+  VERSION = "0.8.47"
 end
