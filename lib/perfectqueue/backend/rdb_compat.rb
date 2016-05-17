@@ -212,18 +212,21 @@ SQL
       def acquire(alive_time, max_acquire, options)
         now = (options[:now] || Time.now).to_i
         next_timeout = now + alive_time
-
-        tasks = []
+        tasks = nil
+        t0 = nil
 
         if @cleanup_interval_count <= 0
           delete_timeout = now - DELETE_OFFSET
+          t0=Process.clock_gettime(Process::CLOCK_REALTIME)
           connect { # TODO: HERE should be still connect_locked ?
             @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", delete_timeout].delete
             @cleanup_interval_count = @cleanup_interval
+            STDERR.puts"PQ:delete from #{@table}:%6f sec" % [Process.clock_gettime(Process::CLOCK_REALTIME)-t0]
           }
         end
 
         connect_locked {
+          t0=Process.clock_gettime(Process::CLOCK_REALTIME)
           tasks = []
           @db.fetch(@sql, now, now, max_acquire) {|row|
             attributes = create_attributes(nil, row)
@@ -256,6 +259,8 @@ SQL
 
           return tasks
         }
+      ensure
+        STDERR.puts "PQ:acquire from #{@table}:%6f sec (%d tasks)" % [Process.clock_gettime(Process::CLOCK_REALTIME)-t0,tasks.size] if tasks
       end
 
       # => nil
