@@ -79,8 +79,8 @@ module PerfectQueue
           @sql = <<SQL
 SELECT id, timeout, data, created_at, resource
 FROM `#{@table}`
-WHERE #{EVENT_HORIZON} < timeout AND timeout <= ? AND timeout <= ?
-      AND created_at IS NOT NULL
+WHERE timeout <= ? AND timeout <= ? AND
+      #{EVENT_HORIZON} < timeout AND created_at IS NOT NULL
 ORDER BY timeout ASC
 LIMIT ?
 SQL
@@ -94,8 +94,8 @@ LEFT JOIN (
   WHERE timeout > ? AND created_at IS NOT NULL AND resource IS NOT NULL
   GROUP BY resource
 ) AS R ON resource = res
-WHERE #{EVENT_HORIZON} < timeout AND timeout <= ?
-      AND created_at IS NOT NULL
+WHERE timeout <= ? AND
+      #{EVENT_HORIZON} < timeout AND created_at IS NOT NULL
       AND (max_running-running IS NULL OR max_running-running > 0)
 ORDER BY weight DESC, timeout ASC
 LIMIT ?
@@ -105,7 +105,7 @@ SQL
         @prefetch_break_types = config[:prefetch_break_types] || []
 
         @cleanup_interval = config[:cleanup_interval] || DEFAULT_DELETE_INTERVAL
-        @cleanup_interval_count = rand(@cleanup_interval)
+        @cleanup_interval_count = rand(@cleanup_interval).to_i
       end
 
       attr_reader :db
@@ -218,7 +218,7 @@ SQL
         if @cleanup_interval_count <= 0
           delete_timeout = now - DELETE_OFFSET
           connect { # TODO: HERE should be still connect_locked ?
-            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", delete_timeout].delete
+            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND timeout < #{EVENT_HORIZON}", delete_timeout].delete
             @cleanup_interval_count = @cleanup_interval
           }
         end
@@ -244,7 +244,7 @@ SQL
           params = [sql, next_timeout, now]
           tasks.each {|t| params << t.key }
           sql << (1..tasks.size).map { '?' }.join(',')
-          sql << ") AND created_at IS NOT NULL"
+          sql << ") AND #{EVENT_HORIZON} < timeout AND created_at IS NOT NULL"
 
           n = @db[*params].update
           if n != tasks.size
@@ -262,7 +262,7 @@ SQL
       def cancel_request(key, options)
         # created_at=0 means cancel_requested
         connect {
-          n = @db["UPDATE `#{@table}` SET created_at=0 WHERE id=? AND created_at IS NOT NULL", key].update
+          n = @db["UPDATE `#{@table}` SET created_at=0 WHERE id=? AND #{EVENT_HORIZON} < timeout AND created_at IS NOT NULL", key].update
           if n <= 0
             raise AlreadyFinishedError, "task key=#{key} does not exist or already finished."
           end
@@ -281,7 +281,7 @@ SQL
         key = task_token.key
 
         connect {
-          n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL", delete_timeout, key].update
+          n = @db["UPDATE `#{@table}` SET timeout=?, resource=NULL WHERE id=? AND #{EVENT_HORIZON} < timeout AND created_at IS NOT NULL", delete_timeout, key].update
           if n <= 0
             raise IdempotentAlreadyFinishedError, "task key=#{key} does not exist or already finished."
           end
@@ -302,7 +302,7 @@ SQL
           sql << ", data=?"
           params << compress_data(data.to_json, options[:compression])
         end
-        sql << " WHERE id=? AND created_at IS NOT NULL"
+        sql << " WHERE id=? AND #{EVENT_HORIZON} < timeout AND created_at IS NOT NULL"
         params << key
 
         connect {
@@ -311,7 +311,7 @@ SQL
             row = @db.fetch("SELECT id, timeout, created_at FROM `#{@table}` WHERE id=? LIMIT 1", key).first
             if row == nil
               raise PreemptedError, "task key=#{key} does not exist or preempted."
-            elsif row[:created_at] == nil
+            elsif row[:created_at] == nil || row[:timeout] < EVENT_HORIZON
               raise PreemptedError, "task key=#{key} preempted."
             else # row[:timeout] == next_timeout
               # ok
@@ -386,7 +386,7 @@ SQL
 
       def create_attributes(now, row)
         compression = nil
-        if row[:created_at] === nil
+        if row[:created_at] === nil || (row[:timeout] && row[:timeout] < EVENT_HORIZON)
           created_at = nil  # unknown creation time
           status = TaskStatus::FINISHED
         elsif row[:created_at] <= 0

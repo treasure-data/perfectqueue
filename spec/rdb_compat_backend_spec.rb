@@ -302,10 +302,10 @@ describe Backend::RDBCompatBackend do
         db.submit(key, 'test', nil, {})
         expect(db.db).to receive(:[]).with(kind_of(String), delete_timeout, key).and_call_original
       end
-      it 'returns nil' do
+      it 'returns nonnil' do
         expect(db.finish(task_token, retention_time, options)).to be_nil
         row = db.db.fetch("SELECT created_at FROM `#{table}` WHERE id=? LIMIT 1", key).first
-        expect(row[:created_at]).to be_nil
+        expect(row[:created_at]).not_to be_nil
       end
     end
     context 'already finished' do
@@ -540,7 +540,7 @@ describe Backend::RDBCompatBackend do
       context 'timeout' do
         it 'status is :waiting' do
           data[:created_at] = 1
-          data[:timeout] = 0
+          data[:timeout] = Backend::RDBCompatBackend::EVENT_HORIZON+1
           r = db.__send__(:create_attributes, now, row)
           expect(r[:status]).to eq TaskStatus::WAITING
         end
