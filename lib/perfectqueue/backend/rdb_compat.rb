@@ -21,6 +21,9 @@ module PerfectQueue
     class RDBCompatBackend
       include BackendHelper
 
+      # backport from v0.8.46
+      EVENT_HORIZON = 13_0000_0000 # 2011-03-13 07:06:40 UTC
+
       class Token < Struct.new(:key)
       end
 
@@ -235,7 +238,7 @@ SQL
 
         if @cleanup_interval_count <= 0
           connect_locked {
-            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", now].delete
+            @db["DELETE FROM `#{@table}` WHERE #{EVENT_HORIZON} < timeout && timeout <= ? AND created_at IS NULL", now].delete
             @cleanup_interval_count = @cleanup_interval
           }
         end
