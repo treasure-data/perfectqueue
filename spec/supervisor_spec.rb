@@ -182,7 +182,7 @@ describe Supervisor do
       queue.submit('task01', 'test', {'sleep'=>4})
       sleep 2
       Process.kill(:TERM, Process.pid)
-      expect(@thread.join(3)).to eq(@thread)
+      expect(@thread.join(5)).to eq(@thread)
     end
   end
 
