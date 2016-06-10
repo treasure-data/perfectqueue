@@ -79,6 +79,7 @@ module PerfectQueue
 SELECT id, timeout, data, created_at, resource
 FROM `#{@table}`
 WHERE timeout <= ? AND timeout <= ? AND created_at IS NOT NULL
+  AND #{EVENT_HORIZON} < timeout
 ORDER BY timeout ASC
 LIMIT ?
 SQL
@@ -93,6 +94,7 @@ LEFT JOIN (
   GROUP BY resource
 ) AS R ON resource = res
 WHERE timeout <= ? AND created_at IS NOT NULL AND (max_running-running IS NULL OR max_running-running > 0)
+  AND #{EVENT_HORIZON} < timeout
 ORDER BY weight DESC, timeout ASC
 LIMIT ?
 SQL
