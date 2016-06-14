@@ -217,6 +217,9 @@ SQL
 
         if @cleanup_interval_count <= 0
           delete_timeout = now - DELETE_OFFSET
+          connect_locked {
+            @db["DELETE FROM `#{@table}` WHERE #{EVENT_HORIZON} < timeout && timeout <= ? AND created_at IS NULL", now].delete
+          }
           connect { # TODO: HERE should be still connect_locked ?
             t0=Process.clock_gettime(Process::CLOCK_MONOTONIC)
             @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", delete_timeout].delete
