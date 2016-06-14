@@ -1,3 +1,7 @@
+== 2016-06-14 version 0.8.44.1
+
+* Don't delete v0.8.46's finished tasks for migration
+
 == 2015-10-07 version 0.8.44
 
 * rdb_compat: Fix fair scheduling.
