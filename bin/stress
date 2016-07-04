@@ -4,6 +4,7 @@ require 'sequel'
 require 'perfectqueue'
 require 'perfectqueue/backend/rdb_compat'
 require 'securerandom'
+require 'optparse'
 
 queue_config =
   {
@@ -12,9 +13,19 @@ queue_config =
   :table => 'test_stress',
   :disable_resource_limit => true,  # TODO backend-specific test cases
   :cleanup_interval => 200,
-  insert_processes: 4,
-  worker_processes: 5,
+  insert_processes: 0,
+  worker_processes: 0,
 }
+opt = OptionParser.new
+
+opt.on('--url URL', 'database url') {|v| queue_config[:url] = v }
+opt.on('--table TABLE', 'table name') {|v| queue_config[:table] = v }
+opt.on('--disable_resource_limit=true', TrueClass, 'use resource limit or not') {|v| queue_config[:disable_resource_limit] = v }
+opt.on('--cleanup_interval SECOND', Integer, 'cleanup interval') {|v| queue_config[:cleanup_interval] = v }
+opt.on('--insert_processes NUM', Integer, 'inserts') {|v| queue_config[:insert_processes] = v }
+opt.on('--worker_processes NUM', Integer, 'workers') {|v| queue_config[:worker_processes] = v }
+opt.on('--retention-time SECOND', Integer, 'retention time') {|v| queue_config[:retention_time] = v }
+opt.parse!(ARGV)
 
 module PerfectQueue
   class Queue
@@ -155,7 +166,7 @@ def worker(queue)
     begin
       ary = queue.poll_multi(max_acquire: 11, now: t)
       ary.each do |x|
-        x.finish!(retention_time: 720)
+        x.finish!({})
       end if ary
       t = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
     rescue
@@ -175,7 +186,7 @@ queue.config[:insert_processes].times do
   pids << fork { insert1000(queue) }
 end
 queue.config[:worker_processes].times do
-  queue.client.backend.instance_variable_set(:@cleanup_interval_count, rand(200))
+  #queue.client.backend.instance_variable_set(:@cleanup_interval_count, rand(200))
   pids << fork { worker(queue) }
 end
 queue.close
