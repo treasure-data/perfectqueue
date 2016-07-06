@@ -105,7 +105,7 @@ SQL
         @prefetch_break_types = config[:prefetch_break_types] || []
 
         @cleanup_interval = config[:cleanup_interval] || DEFAULT_DELETE_INTERVAL
-        @cleanup_interval_count = rand(@cleanup_interval)
+        @cleanup_interval_count = @cleanup_interval > 0 ? rand(@cleanup_interval) : 0
       end
 
       attr_reader :db
