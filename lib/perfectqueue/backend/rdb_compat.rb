@@ -105,6 +105,9 @@ SQL
         @prefetch_break_types = config[:prefetch_break_types] || []
 
         @cleanup_interval = config[:cleanup_interval] || DEFAULT_DELETE_INTERVAL
+        # If cleanup_interval_count <= max_request_per_child / max_acquire,
+        # some processes won't run DELETE query.
+        # (it's not an issue when there are enough workers)
         @cleanup_interval_count = @cleanup_interval > 0 ? rand(@cleanup_interval) : 0
       end
 
