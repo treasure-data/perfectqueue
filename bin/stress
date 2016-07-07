@@ -1,0 +1,201 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+require 'sequel'
+require 'perfectqueue'
+require 'perfectqueue/backend/rdb_compat'
+require 'securerandom'
+require 'optparse'
+
+queue_config =
+  {
+  :type => 'rdb_compat',
+  :url => "mysql2://testuser:@localhost:3306/perfectqueue_test",
+  :table => 'test_stress',
+  :disable_resource_limit => true,  # TODO backend-specific test cases
+  :cleanup_interval => 200,
+  insert_processes: 0,
+  worker_processes: 0,
+}
+opt = OptionParser.new
+
+opt.on('--url URL', 'database url') {|v| queue_config[:url] = v }
+opt.on('--table TABLE', 'table name') {|v| queue_config[:table] = v }
+opt.on('--disable_resource_limit=true', TrueClass, 'use resource limit or not') {|v| queue_config[:disable_resource_limit] = v }
+opt.on('--cleanup_interval SECOND', Integer, 'cleanup interval') {|v| queue_config[:cleanup_interval] = v }
+opt.on('--insert_processes NUM', Integer, 'inserts') {|v| queue_config[:insert_processes] = v }
+opt.on('--worker_processes NUM', Integer, 'workers') {|v| queue_config[:worker_processes] = v }
+opt.on('--retention-time SECOND', Integer, 'retention time') {|v| queue_config[:retention_time] = v }
+opt.parse!(ARGV)
+
+module PerfectQueue
+  class Queue
+    def submit1000(data)
+      @client.submit1000(data)
+    end
+  end
+  class Client
+    def submit1000(data)
+      @backend.submit1000(data)
+    end
+  end
+  module Backend
+    class RDBCompatBackend
+      def submit1000(h)
+        rd = Random.new
+        i = 0
+        connect {
+          begin
+            begin
+              n = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+              submit0("import.1/main.action_#{n}_#{rd.hex(80)}", 'user02', h, now: n)
+            end while (i+=1) < 10000
+          end
+        }
+      end
+
+      # => Task
+      def submit0(key, type, data, options)
+        now = (options[:now] || Time.now).to_i
+        now = 1 if now < 1  # 0 means cancel requested
+        run_at = (options[:run_at] || now).to_i
+        user = options[:user]
+        user = user.to_s if user
+        max_running = options[:max_running]
+        data = data ? data.dup : {}
+        data['type'] = type
+
+        d = data.to_json
+
+        if options[:compression] == 'gzip'
+          require 'zlib'
+          require 'stringio'
+          io = StringIO.new
+          gz = Zlib::GzipWriter.new(io)
+          begin
+            gz.write(d)
+          ensure
+            gz.close
+          end
+          d = io.string
+          d.force_encoding('ASCII-8BIT') if d.respond_to?(:force_encoding)
+          d = Sequel::SQL::Blob.new(d)
+        end
+
+        @db[
+          "INSERT INTO `#{@table}` (id, timeout, data, created_at, resource, max_running) VALUES (?, ?, ?, ?, ?, ?)",
+          key, run_at, d, now, user, max_running
+        ].insert
+      end
+    end
+  end
+end
+
+
+def insert1000(queue)
+  Process.setproctitle'bin/stress/insert'
+  while 1
+    t0 = t = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+    h = {"path":"in/1/main.action.e9f070b5bfea96442af13ce6acc36699_0f7ad8aee859867aae303190e372ec1e.msgpack.gz",
+"size":11373,
+"format":"msgpack.gz",
+"account_id":1,
+"start_at":nil,
+"database":"main",
+"table":"action",
+"table_path":"action_20160516_d85364_e43b23f4",
+"table_id":123456,
+"user":1,
+"c3769c43b07202bf6f456f4b99639a15":"1/main/action_20160516_d85364_e43b23f4",
+"hogefuga":"e9f070b5bfea96442af13ce6acc36699",
+"unique_id":"2d7325ef94e3eda8a20b65d33696d45a",
+"hoge_callback":{"url":"f117c9682a9c5129275f39493599272f809fcf3064edbfacc1c0a5",
+"headers":{"21a166dedd97bc":"TD1 4f8e44c0880086628ad7349e69d7d6ba19ce05ae"},
+"params":{}},
+"params":{}}
+    begin
+      queue.submit1000(h)
+    rescue Sequel::DatabaseError
+      p $!
+      sleep 5
+    end
+    t = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+    puts "#{__method__}#{Process.pid}: #{t-t0}sec for 1000 inserts\n"
+  end
+rescue Interrupt
+  exit
+end
+
+def insert(queue)
+  while 1
+    rd = Random.new
+    i = 0
+    t0 = t = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+    h = {"path":"in/1/main.action.e9f070b5bfea96442af13ce6acc36699_0f7ad8aee859867aae303190e372ec1e.msgpack.gz",
+"size":11373,
+"format":"msgpack.gz",
+"account_id":1,
+"start_at":nil,
+"database":"main",
+"table":"action",
+"table_path":"action_20160516_d85364_e43b23f4",
+"table_id":123456,
+"user":1,
+"c3769c43b07202bf6f456f4b99639a15":"1/main/action_20160516_d85364_e43b23f4",
+"hogefuga":"e9f070b5bfea96442af13ce6acc36699",
+"unique_id":"2d7325ef94e3eda8a20b65d33696d45a",
+"hoge_callback":{"url":"f117c9682a9c5129275f39493599272f809fcf3064edbfacc1c0a5",
+"headers":{"21a166dedd97bc":"TD1 4f8e44c0880086628ad7349e69d7d6ba19ce05ae"},
+"params":{}},
+"params":{}}
+    begin
+      n = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+      queue.submit("import.1/main.action_#{n}_#{rd.hex(80)}", 'user02', h, now: t)
+    rescue
+      p $!
+      sleep 1
+    end while (i+=1) < 1000
+    t = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+    puts "#{__method__}#{Process.pid}: #{t-t0}sec for 1000 inserts\n"
+  end
+end
+
+def worker(queue)
+  while 1
+    i = 0
+    t0 = t = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+    begin
+      ary = queue.poll_multi(max_acquire: 11, now: t)
+      ary.each do |x|
+        x.finish!({})
+      end if ary
+      t = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+    rescue
+      p $!.class
+      sleep 1
+    end while (i+=1) < 100
+    puts "#{__method__}#{Process.pid}: #{t-t0}sec for 100 acquires\n"
+  end
+rescue Interrupt
+  exit
+end
+
+pids = []
+queue = PerfectQueue.open(queue_config)
+#queue.client.init_database(:force => true)
+queue.config[:insert_processes].times do
+  pids << fork { insert1000(queue) }
+end
+queue.config[:worker_processes].times do
+  #queue.client.backend.instance_variable_set(:@cleanup_interval_count, rand(200))
+  pids << fork { worker(queue) }
+end
+queue.close
+
+trap (:INT) do
+  pids.each do |pid|
+    Process.kill(:INT, pid) rescue nil
+    Process.waitpid(pid) rescue nil
+  end
+  exit
+end
+sleep while 1
