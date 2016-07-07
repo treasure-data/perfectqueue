@@ -1,6 +1,10 @@
-== 2016-0x-xx version 0.8.48
+== 2016-07-07 version 0.8.48
 
 * Drop 2.0.0 support #33
+* Show taken time of delete and acquire (#33)
+* To ease the migration delete v0.8.44 finished tasks too (#34)
+* Add stress test tool (#35)
+* Fix cleanup interval count (#36)
 
 == 2016-04-15 version 0.8.47
 
