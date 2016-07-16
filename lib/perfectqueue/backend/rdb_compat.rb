@@ -219,10 +219,9 @@ SQL
         t0 = nil
 
         if @cleanup_interval_count <= 0
-          delete_timeout = now - DELETE_OFFSET
           connect { # TODO: HERE should be still connect_locked ?
             t0=Process.clock_gettime(Process::CLOCK_MONOTONIC)
-            @db["DELETE FROM `#{@table}` WHERE timeout <= ? AND created_at IS NULL", delete_timeout].delete
+            @db["DELETE FROM `#{@table}` WHERE timeout <= ?", now-DELETE_OFFSET].delete
             @cleanup_interval_count = @cleanup_interval
             STDERR.puts"PQ:delete from #{@table}:%6f sec" % [Process.clock_gettime(Process::CLOCK_MONOTONIC)-t0]
           }
