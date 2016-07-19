@@ -205,7 +205,7 @@ SQL
               key, run_at, d, now, user, max_running
             ].insert
             return Task.new(@client, key)
-          rescue Sequel::DatabaseError
+          rescue Sequel::UniqueConstraintViolation
             raise IdempotentAlreadyExistsError, "task key=#{key} already exists"
           end
         }
