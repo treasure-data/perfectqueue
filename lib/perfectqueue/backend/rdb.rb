@@ -3,6 +3,8 @@ module PerfectQueue
 
 
 class RDBBackend < Backend
+  DELETE_OFFSET = 10_0000_0000
+
   def initialize(uri, table, config={})
     require 'sequel'
     require 'uri'
@@ -136,7 +138,7 @@ SQL
 
   def finish(id, delete_timeout=3600, now=Time.now.to_i)
     connect {
-      n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL;", now+delete_timeout, id].update
+      n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL;", now+delete_timeout-DELETE_OFFSET, id].update
       return n > 0
     }
   end
