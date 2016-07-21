@@ -208,7 +208,7 @@ describe Backend::RDBCompatBackend do
         db.list({}) do |task|
           expect(task.timeout).to eq now0.to_time
         end
-        ary = db.acquire(alive_time, max_acquire, {})
+        ary = db.acquire(alive_time, max_acquire, {now: now})
         expect(ary).to be_an_instance_of(Array)
         expect(ary.size).to eq(3)
         expect(ary[0]).to be_an_instance_of(AcquiredTask)
