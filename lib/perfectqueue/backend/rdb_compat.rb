@@ -339,7 +339,7 @@ SQL
       end
 
       protected
-      def connect_locked(&block)
+      def connect_locked
         connect {
           locked = false
 
@@ -349,7 +349,7 @@ SQL
               locked = true
             end
 
-            return block.call
+            return yield
           ensure
             if @use_connection_pooling && locked
               @table_unlock.call
@@ -358,7 +358,7 @@ SQL
         }
       end
 
-      def connect(&block)
+      def connect
         now = Time.now.to_i
         @mutex.synchronize do
           # keepalive_timeout
@@ -366,7 +366,7 @@ SQL
 
           count = 0
           begin
-            block.call
+            yield
             @last_time = now
           rescue
             # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error

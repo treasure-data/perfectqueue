@@ -54,11 +54,11 @@ module PerfectQueue::Backend
     end
 
     private
-    def connect(&block)
+    def connect
       @mutex.synchronize do
         retry_count = 0
         begin
-          block.call
+          yield
         rescue
           # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
           if $!.to_s.include?('try restarting transaction')
