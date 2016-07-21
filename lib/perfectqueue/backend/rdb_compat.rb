@@ -39,6 +39,7 @@ module PerfectQueue
       def initialize(client, config)
         super
 
+        @pq_connect_timeout = config.fetch(:pq_connect_timeout, 20)
         url = config[:url]
         @table = config[:table]
         unless @table
@@ -46,7 +47,9 @@ module PerfectQueue
         end
 
         if /\Amysql2:/i =~ url
-          @db = Sequel.connect(url, {max_connections: 1, sslca: config[:sslca]})
+          options = {max_connections: 1, sslca: config[:sslca]}
+          options[:connect_timeout] = config.fetch(:connect_timeout, 3)
+          @db = Sequel.connect(url, options)
           if config.fetch(:use_connection_pooling, nil) != nil
             @use_connection_pooling = !!config[:use_connection_pooling]
           else
@@ -349,6 +352,7 @@ SQL
 
       def connect
         now = Time.now.to_i
+        tmax = now + @pq_connect_timeout
         @mutex.synchronize do
           # keepalive_timeout
           @db.disconnect if now - @last_time > KEEPALIVE
@@ -357,6 +361,14 @@ SQL
           begin
             yield
             @last_time = now
+          rescue Sequel::DatabaseConnectionError
+            if (count += 1) < MAX_RETRY && tmax > Time.now.to_i
+              STDERR.puts "#{$!}\n  retrying."
+              sleep 2
+              retry
+            end
+            STDERR.puts "#{$!}\n  abort."
+            raise
           rescue
             # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
             if $!.to_s.include?('try restarting transaction')
