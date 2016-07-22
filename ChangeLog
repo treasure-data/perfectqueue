@@ -1,3 +1,10 @@
+== 2016-07-22 version 0.7.32
+
+DON'T USE THIS VERSION UNLESS YOU KNOW WHAT THIS IS!
+This version is for migration v07 to v0.8.48.
+
+* Use PerfectQueue v0.8.48's timeout model (#41)
+
 
 == 2014-10-08 version 0.7.31
 
