@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/treasure-data/perfectqueue/badge.svg?branch=master&service=github)](https://coveralls.io/github/treasure-data/perfectqueue?branch=master)
 
 PerfectQueue is a highly available distributed queue built on top of RDBMS.
-PerfectQueue provides similar API to Amazon SQS, while PerfectQueue focues on reliability and flexible scheduling rather than scalability.
+PerfectQueue provides similar API to Amazon SQS, while PerfectQueue focuses on reliability and flexible scheduling rather than scalability.
 
 PerfectQueue introduces following concepts:
 
