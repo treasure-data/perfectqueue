@@ -22,6 +22,9 @@ describe Backend::RDBBackend do
   context '#submit' do
     it 'adds task' do
       db.submit('key', '{"foo":"bar"}')
+      row = db.db.fetch("SELECT * FROM `#{table}` WHERE id=? LIMIT 1", 'key').first
+      expect(row[:created_at]).not_to be_nil
+      expect(row[:data]).to eq('{"foo":"bar"}')
     end
   end
 
