@@ -61,7 +61,7 @@ module PerfectQueue::Backend
           block.call
         rescue
           # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
-          if $!.to_s.include?('try restarting transaction') || $!.is_a?(Sequel::DatabaseConnectionError)
+          if $!.to_s.include?('try restarting transaction')
             err = ([$!] + $!.backtrace.map {|bt| "  #{bt}" }).join("\n")
             retry_count += 1
             if retry_count < MAX_RETRY
