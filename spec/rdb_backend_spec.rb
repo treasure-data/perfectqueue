@@ -30,10 +30,6 @@ describe Backend::RDBBackend do
 
   context '#cancel' do
     let (:key){ 'key' }
-    let (:task_token){ Backend::RDBBackend::Token.new(key) }
-    let (:retention_time) { 42 }
-    let (:delete_timeout){ now - Backend::RDBBackend::DELETE_OFFSET + retention_time }
-    let (:options){ {now: now} }
     context 'have the task' do
       before do
         db.submit(key, '{}')
