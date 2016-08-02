@@ -1,3 +1,10 @@
+== 2016-08-02 version 0.8.49
+
+* Revert v0.8.44 migration path (#38)
+* v0.8.48's timeout express taks's life (#39)
+* Use Sequel::UniqueConstraintViolation (#40)
+* Merge v07 branch (#45)
+
 == 2016-07-07 version 0.8.48
 
 * Drop 2.0.0 support #33
