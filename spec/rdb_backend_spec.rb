@@ -21,10 +21,14 @@ describe Backend::RDBBackend do
 
   context '#submit' do
     it 'adds task' do
-      db.submit('key', '{"foo":"bar"}')
+      expect(db.submit('key', '{"foo":"bar"}')).to be true
       row = db.db.fetch("SELECT * FROM `#{table}` WHERE id=? LIMIT 1", 'key').first
       expect(row[:created_at]).not_to be_nil
       expect(row[:data]).to eq('{"foo":"bar"}')
+    end
+    it 'returns nil for a duplicated task' do
+      expect(db.submit('key', '{"foo":"bar"}')).to be true
+      expect(db.submit('key', '{"foo":"bar"}')).to be_nil
     end
   end
 

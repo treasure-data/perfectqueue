@@ -166,11 +166,15 @@ describe Backend::RDBCompatBackend do
   end
 
   context '#submit' do
-    it 'adds task' do
-      db.submit('key', 'test', nil, {})
+    it 'returns true' do
+      expect(db.submit('key', 'test', nil, {})).to be_an_instance_of(Task)
     end
-    it 'gzip' do
-      db.submit('key', 'test', nil, {compression: 'gzip'})
+    it 'returns true (gzip)' do
+      expect(db.submit('key', 'test', nil, {compression: 'gzip'})).to be_an_instance_of(Task)
+    end
+    it 'returns nil if duplication' do
+      expect(db.submit('key', 'test', nil, {})).to be_an_instance_of(Task)
+      expect{db.submit('key', 'test', nil, {})}.to raise_error(IdempotentAlreadyExistsError)
     end
   end
 
