@@ -3,23 +3,15 @@ require 'spec_helper'
 class TestHandler < PerfectQueue::Application::Base
   def run
     #puts "TestHandler: #{task}"
-    if task.data['raise_error']
-      raise "expected error test"
-    end
     if num = task.data['sleep']
       sleep num
     end
     #puts "Task finished"
   end
-
-  def kill(reason)
-    puts "kill: #{reason.class}: #{reason}"
-  end
 end
 
 class RegexpHandler < PerfectQueue::Application::Base
   def run
-    puts "RegexpHandler: #{task}"
   end
 end
 

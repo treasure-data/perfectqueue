@@ -18,8 +18,6 @@ describe PerfectQueue::TaskMonitor do
       tm = PerfectQueue::TaskMonitor.new(logger: double('logger').as_null_object)
       task = double('task')
       reason = double('reason')
-      allow(task).to receive_message_chain(:runner, :kill) \
-        .with(no_args).with(reason){raise}
       epoch = double('epoch')
       allow(Time).to receive_message_chain(:now, :to_i){epoch}
       ret = double('ret')
