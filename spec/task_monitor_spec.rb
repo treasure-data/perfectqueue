@@ -30,7 +30,7 @@ describe PerfectQueue::TaskMonitor do
   end
 
   describe '#run' do
-    it 'rescues exception' do
+    it 'rescues unknown error' do
       config = {logger: double('logger').as_null_object}
       force_stop = double('force_stop')
       expect(force_stop).to receive(:call).with(no_args).exactly(:once)
@@ -39,20 +39,28 @@ describe PerfectQueue::TaskMonitor do
       tm.run
     end
   end
+
+  describe '#task_heartbeat' do
+    let (:tm){ PerfectQueue::TaskMonitor.new(logger: double('logger').as_null_object) }
+    let (:err){ StandardError.new('heartbeat preempted') }
+    before do
+      task = double('task')
+      allow(task).to receive(:heartbeat!){ raise err }
+      tm.set_task(task, double('runner'))
+    end
+    it 'calls kill_task($!) on heartbeat error' do
+      expect(tm).to receive(:kill_task).with(err).exactly(:once)
+      tm.__send__(:task_heartbeat)
+    end
+  end
 end
 
 describe PerfectQueue::TaskMonitorHook do
-  let (:task_monitor) do
-    tm = PerfectQueue::TaskMonitor.new(logger: double('logger').as_null_object)
-  end
   let (:task) do
-    obj = double('task', key: 'foo', finish!: 1, release!: 1, retry!: 1, cancel_request!: 1, update_data!: 1)
-    obj.extend(TaskMonitorHook)
-    obj.instance_variable_set(:@log, double('log', info: nil))
-    obj.instance_variable_set(:@task_monitor, task_monitor)
+    obj = AcquiredTask.new(double(:client).as_null_object, 'key', {}, double)
+    tm = TaskMonitor.new(logger: double('logger').as_null_object)
+    tm.set_task(obj, double('runner'))
     obj
-  end
-  before do
   end
   describe 'finish!' do
     it { task.finish! }
@@ -67,6 +75,6 @@ describe PerfectQueue::TaskMonitorHook do
     it { task.cancel_request! }
   end
   describe 'update_data!' do
-    it { task.update_data!(double) }
+    it { task.update_data!({}) }
   end
 end
