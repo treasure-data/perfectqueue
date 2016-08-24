@@ -199,57 +199,52 @@ describe Backend::RDBCompatBackend do
         expect(ary[0]).to be_an_instance_of(AcquiredTask)
       end
     end
+    context 'disable_resource_limit' do
+      let (:config) do
+        {url: 'mysql2://root:@localhost/perfectqueue_test', table: table, disable_resource_limit: true}
+      end
+      before do
+        db.submit(key, 'test', nil, {})
+      end
+      it 'returns a task' do
+        ary = db.acquire(alive_time, max_acquire, {})
+        expect(ary).to be_an_instance_of(Array)
+        expect(ary.size).to eq(1)
+        expect(ary[0]).to be_an_instance_of(AcquiredTask)
+      end
+    end
     context 'some tasks' do
-      let :t0 do now - 100 end
+      let :t0 do now - 300 end
+      let :t1 do now - 200 end
+      let :t2 do now - 100 end
       before do
         db.submit('key1', 'test1', nil, {now: t0})
         db.submit('key2', 'test2', nil, {now: t0})
-        db.submit('key3', 'test3', nil, {now: t0})
+        db.submit('key3', 'test3', nil, {now: t1})
+        db.submit('key4', 'test4', nil, {now: t2})
+        db.submit('key5', 'test5', nil, {now: t2})
       end
-      it 'returns 3 tasks' do
-        now0 = Time.at(t0)
-        expect(now0).to receive(:to_time).exactly(3).times.and_call_original
-        db.list({}) do |task|
-          expect(task.timeout).to eq now0.to_time
-        end
+      it 'returns 5 tasks' do
+        ary = []
+        db.list({}){|task| ary << task }
+        expect(ary[0].timeout.to_i).to eq t0
+        expect(ary[1].timeout.to_i).to eq t0
+        expect(ary[2].timeout.to_i).to eq t1
+        expect(ary[3].timeout.to_i).to eq t2
+        expect(ary[4].timeout.to_i).to eq t2
+
         ary = db.acquire(alive_time, max_acquire, {now: now})
         expect(ary).to be_an_instance_of(Array)
-        expect(ary.size).to eq(3)
+        expect(ary.size).to eq(5)
         expect(ary[0]).to be_an_instance_of(AcquiredTask)
         expect(ary[1]).to be_an_instance_of(AcquiredTask)
         expect(ary[2]).to be_an_instance_of(AcquiredTask)
+        expect(ary[3]).to be_an_instance_of(AcquiredTask)
+        expect(ary[4]).to be_an_instance_of(AcquiredTask)
 
         now1 = Time.at(now + alive_time)
-        expect(now1).to receive(:to_time).exactly(3).times.and_call_original
+        expect(now1).to receive(:to_time).exactly(5).times.and_call_original
         db.list({}){|task| expect(task.timeout).to eq now1.to_time }
-      end
-      it 'returns 2 tasks' do
-        db.instance_variable_set(:@prefetch_break_types, 'test2')
-        ary = db.acquire(alive_time, max_acquire, {})
-        expect(ary).to be_an_instance_of(Array)
-        expect(ary.size).to eq(2)
-        expect(ary[0]).to be_an_instance_of(AcquiredTask)
-        expect(ary[1]).to be_an_instance_of(AcquiredTask)
-      end
-    end
-    context 'stole a task' do
-      let :t0 do now - 100 end
-      before do
-        db.submit('key1', 'test1', nil, {now: t0})
-        db.submit('key2', 'test2', nil, {now: t0})
-        db.submit('key3', 'test3', nil, {now: t0})
-      end
-      it 'returns nil' do
-        # hook and steal a task
-        mock = double('prefetch_break_types')
-        db.instance_variable_set(:@prefetch_break_types, mock)
-        allow(mock).to receive(:include?) do
-          db.db['UPDATE `test_queues` SET timeout=? WHERE id=?', now+300, 'key2'].update
-          false
-        end
-
-        ary = db.acquire(alive_time, max_acquire, {})
-        expect(ary).to be_nil
       end
     end
   end

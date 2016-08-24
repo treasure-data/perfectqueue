@@ -1,3 +1,10 @@
+== 2016-xx-xx version 0.9.0
+
+* Use UPDATE first strategy (#15)
+  * owner column is added for the table: migration is required
+  * AcquiredTask#timeout is the current value rather than at acquiring
+  * prefetch_break_types is removed
+
 == 2016-08-02 version 0.8.49
 
 * Revert v0.8.44 migration path (#38)
