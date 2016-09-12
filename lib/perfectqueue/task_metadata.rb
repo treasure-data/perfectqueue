@@ -68,10 +68,6 @@ module PerfectQueue
     def running?
       status == TaskStatus::RUNNING
     end
-
-    def cancel_requested?
-      status == TaskStatus::CANCEL_REQUESTED
-    end
   end
 
   class TaskMetadata

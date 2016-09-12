@@ -249,34 +249,6 @@ describe Backend::RDBCompatBackend do
     end
   end
 
-  context '#cancel_request' do
-    let (:key){ 'key' }
-    let (:task_token){ Backend::RDBCompatBackend::Token.new(key) }
-    let (:retention_time) { 42 }
-    let (:delete_timeout){ now + retention_time }
-    let (:options){ {now: now} }
-    context 'have a task' do
-      before do
-        db.submit(key, 'test', nil, {})
-      end
-      it 'returns nil' do
-        expect(db.cancel_request(key, options)).to be_nil
-        row = db.db.fetch("SELECT created_at FROM `#{table}` WHERE id=? LIMIT 1", key).first
-        expect(row[:created_at]).to eq 0
-      end
-    end
-    context 'already finished' do
-      before do
-        expect(STDERR).to receive(:puts)
-        db.submit(key, 'test', nil, {})
-        db.finish(task_token, retention_time, options)
-      end
-      it 'raises AlreadyFinishedError' do
-        expect{db.cancel_request(key, options)}.to raise_error(AlreadyFinishedError)
-      end
-    end
-  end
-
   context '#force_finish' do
     let (:key){ double('key') }
     let (:token){ double('token') }
@@ -345,15 +317,6 @@ describe Backend::RDBCompatBackend do
       end
       it 'raises PreemptedError' do
         expect{db.heartbeat(task_token, 0, {})}.to raise_error(PreemptedError)
-      end
-    end
-    context 'canceled task' do
-      before do
-        db.submit(key, 'test', nil, {})
-        db.cancel_request(key, options)
-      end
-      it 'returns nil' do
-        expect( db.heartbeat(task_token, 0, {}) ).to be_nil
       end
     end
   end
@@ -526,13 +489,6 @@ describe Backend::RDBCompatBackend do
           r = db.__send__(:create_attributes, now, row)
           expect(r[:status]).to eq TaskStatus::FINISHED
         end
-      end
-    end
-    context 'created_at is 0' do
-      it 'status is :cancel_requested' do
-        data[:created_at] = 0
-        r = db.__send__(:create_attributes, now, row)
-        expect(r[:status]).to eq TaskStatus::CANCEL_REQUESTED
       end
     end
     context 'created_at > 0' do

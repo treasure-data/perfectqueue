@@ -69,9 +69,6 @@ describe PerfectQueue::TaskMonitorHook do
   describe 'retry!' do
     it { task.retry! }
   end
-  describe 'cancel_request!' do
-    it { task.cancel_request! }
-  end
   describe 'update_data!' do
     it { task.update_data!({}) }
   end

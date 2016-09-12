@@ -273,18 +273,6 @@ SQL
         STDERR.puts "PQ:acquire from #{@table}:%6f sec (%d tasks)" % [Process.clock_gettime(Process::CLOCK_MONOTONIC)-t0,tasks.size] if tasks
       end
 
-      # => nil
-      def cancel_request(key, options)
-        # created_at=0 means cancel_requested
-        connect {
-          n = @db["UPDATE `#{@table}` SET created_at=0 WHERE id=? AND created_at IS NOT NULL", key].update
-          if n <= 0
-            raise AlreadyFinishedError, "task key=#{key} does not exist or already finished."
-          end
-        }
-        nil
-      end
-
       def force_finish(key, retention_time, options)
         finish(Token.new(key), retention_time, options)
       end
@@ -404,8 +392,6 @@ SQL
         if row[:created_at] === nil
           created_at = nil  # unknown creation time
           status = TaskStatus::FINISHED
-        elsif row[:created_at] <= 0
-          status = TaskStatus::CANCEL_REQUESTED
         elsif now && row[:timeout] < now
           created_at = row[:created_at]
           status = TaskStatus::WAITING

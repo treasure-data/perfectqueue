@@ -20,8 +20,6 @@ describe Queue do
       queue.submit('task01', 'type1', {}, :now=>now+1)
     }.to raise_error AlreadyExistsError
 
-    queue['task01'].cancel_request!(:now=>now+2)
-
     expect {
       allow(STDERR).to receive(:puts)
       queue.submit('task01', 'type1', {}, :now=>now+10)
@@ -161,7 +159,6 @@ describe Queue do
     #queue['task01'].metadata.finished?.should == false
     #queue['task01'].metadata.running?.should == false
     #queue['task01'].metadata.waiting?.should == true
-    #queue['task01'].metadata.cancel_requested?.should == false
 
     task01 = queue.poll(:now=>now+10, :alive_time=>10)
     expect(task01.key).to eq('task01')
@@ -169,37 +166,12 @@ describe Queue do
     expect(queue['task01'].metadata.finished?).to eq(false)
     expect(queue['task01'].metadata.running?).to eq(true)
     expect(queue['task01'].metadata.waiting?).to eq(false)
-    expect(queue['task01'].metadata.cancel_requested?).to eq(false)
-
-    task01.cancel_request!
-
-    # status of cancel_requested running tasks is cancel_requested
-    expect(queue['task01'].metadata.finished?).to eq(false)
-    expect(queue['task01'].metadata.running?).to eq(false)
-    expect(queue['task01'].metadata.waiting?).to eq(false)
-    expect(queue['task01'].metadata.cancel_requested?).to eq(true)
 
     task01.finish!
 
     expect(queue['task01'].metadata.finished?).to eq(true)
     expect(queue['task01'].metadata.running?).to eq(false)
     expect(queue['task01'].metadata.waiting?).to eq(false)
-    expect(queue['task01'].metadata.cancel_requested?).to eq(false)
-  end
-
-  it 'fail canceling finished task' do
-    now = Time.now.to_i
-    queue.submit('task01', 'type1', {"a"=>1}, :now=>now+0)
-
-    task01 = queue.poll(:now=>now+10, :alive_time=>10)
-    expect(task01.key).to eq('task01')
-
-    task01.finish!
-
-    expect {
-      allow(STDERR).to receive(:puts)
-      queue['task01'].cancel_request!
-    }.to raise_error AlreadyFinishedError
   end
 
   it 'retention_time' do

@@ -27,10 +27,6 @@ module PerfectQueue
 
     attr_reader :key
 
-    def cancel_request!(options={})
-      @client.cancel_request(@key, options)
-    end
-
     def force_finish!(options={})
       @client.force_finish(@key, options)
     end

@@ -21,7 +21,6 @@ module PerfectQueue
     WAITING = :waiting
     RUNNING = :running
     FINISHED = :finished
-    CANCEL_REQUESTED = :cancel_requested
   end
 end
 

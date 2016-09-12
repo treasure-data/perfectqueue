@@ -8,7 +8,6 @@ op.banner += %[ <command>
 commands:
     list                             Show list of tasks
     submit <key> <type> <data>       Submit a new task
-    cancel_request <key>             Cancel request
     force_finish <key>               Force finish a task
     run <class>                      Run a worker process
     init                             Initialize a backend database
@@ -76,11 +75,6 @@ begin
     cmd = :list
     usage nil unless ARGV.length == 0
 
-  when 'cancel_request' ,'cancel'
-    cmd = :cancel
-    usage nil unless ARGV.length == 1
-    key = ARGV[0]
-
   when 'force_finish' ,'finish'
     cmd = :finish
     usage nil unless ARGV.length == 1
@@ -140,11 +134,6 @@ when :list
     }
   }
   puts "#{n} entries."
-
-when :cancel
-  PerfectQueue.open(config_load_proc.call) {|queue|
-    queue[key].cancel_request!
-  }
 
 when :finish
   PerfectQueue.open(config_load_proc.call) {|queue|
