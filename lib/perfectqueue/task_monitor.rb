@@ -147,7 +147,7 @@ module PerfectQueue
     def task_heartbeat
       @task.heartbeat!
     rescue
-      # finished, cancel_requested, preempted, etc.
+      # finished, preempted, etc.
       kill_task($!)
     end
   end
@@ -173,13 +173,6 @@ module PerfectQueue
 
     def retry!(*args, &block)
       @log.info "retry task=#{self.key}" if @log
-      @task_monitor.task_finished(self) {
-        super(*args, &block)
-      }
-    end
-
-    def cancel_request!(*args, &block)
-      @log.info "cancel request task=#{self.key}" if @log
       @task_monitor.task_finished(self) {
         super(*args, &block)
       }

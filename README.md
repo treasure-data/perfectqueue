@@ -46,10 +46,6 @@ Queue#[](key)  #=> #<Task>
 # chack the existance of the task
 Task#exists?
 
-# request to cancel a task
-# (actual behavior depends on the worker program)
-Task#cancel_request!
-
 # force finish a task
 # be aware that worker programs can't detect it
 Task#force_finish!
@@ -63,8 +59,6 @@ TaskError
 ##
 # Workers may get these errors:
 #
-
-CancelRequestedError < TaskError
 
 AlreadyFinishedError < TaskError
 
@@ -206,7 +200,6 @@ Usage: perfectqueue [options] <command>
 commands:
     list                             Show list of tasks
     submit <key> <type> <data>       Submit a new task
-    cancel_request <key>             Cancel request
     force_finish <key>               Force finish a task
     run <class>                      Run a worker process
     init                             Initialize a backend database
@@ -242,10 +235,6 @@ options for run:
                                 k2       user_task             user_2            waiting    2012-05-18 13:35:33 -0700    2012-05-18 14:35:33 -0700   {"uid"=>2, "type"=>"user_task"}
                                 k3     system_task                               waiting    2012-05-18 14:04:02 -0700    2012-05-22 15:04:02 -0700   {"task_id"=>32, "type"=>"system_task"}
     3 entries.
-
-### cancel a tasks
-
-    $ perfectqueue cancel_request k1
 
 ### force finish a tasks
 

@@ -69,11 +69,6 @@ module PerfectQueue
       @backend.acquire(alive_time, max_acquire, options)
     end
 
-    # :message => nil
-    def cancel_request(key, options={})
-      @backend.cancel_request(key, options)
-    end
-
     def force_finish(key, options={})
       retention_time = options[:retention_time] || @retention_time
 
