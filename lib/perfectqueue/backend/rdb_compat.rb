@@ -305,10 +305,10 @@ SQL
           sql << ", data=?"
           params << compress_data(data.to_json, options[:compression])
         end
-        if last_timeout = options[:last_timeout]
+        if last_heartbeat = options[:last_heartbeat]
           sql << " WHERE id=? AND timeout=?"
           params << key
-          params << last_timeout
+          params << last_heartbeat
         else
           sql << " WHERE id=? AND #{EVENT_HORIZON} < timeout"
           params << key
@@ -322,7 +322,7 @@ SQL
               raise PreemptedError, "task key=#{key} does not exist or preempted."
             elsif row[:created_at] == nil
               raise PreemptedError, "task key=#{key} is finished or canceled"
-            elsif options[:last_timeout] && row[:timeout] != options[:last_timeout]
+            elsif options[:last_heartbeat] && row[:timeout] != options[:last_heartbeat]
               raise PreemptedError, "task key=#{key} is preempted by another worker."
             else # row[:timeout] == next_timeout
               # ok

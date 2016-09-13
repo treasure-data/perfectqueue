@@ -39,6 +39,8 @@ describe PerfectQueue::TaskMonitor do
   end
 
   describe '#task_heartbeat' do
+    let (:config){ {type: 'rdb_compat', url: 'mysql2://root:@localhost/perfectqueue_test', table: 'test_queues', alive_time: 11} }
+    let (:client){ Client.new(config) }
     let (:tm){ PerfectQueue::TaskMonitor.new(logger: double('logger').as_null_object, task_heartbeat_interval: 1) }
     let (:err){ StandardError.new('heartbeat preempted') }
     let (:now){ Time.now.to_i }
@@ -52,8 +54,6 @@ describe PerfectQueue::TaskMonitor do
       tm.__send__(:task_heartbeat)
     end
     context 'normal' do
-      let (:config){ {type: 'rdb_compat', url: 'mysql2://root:@localhost/perfectqueue_test', table: 'test_queues', alive_time: 11} }
-      let (:client){ Client.new(config) }
       before do
         client.backend.db.tap{|s| s.tables.each{|t| s.drop_table(t) } }
         client.init_database
@@ -69,8 +69,37 @@ describe PerfectQueue::TaskMonitor do
         expect(task.timeout.to_i).to eq(now-80+config[:alive_time])
         tm.set_task(task, double('runner'))
         allow(Time).to receive(:now).and_return(now-50)
-        sleep 1 until tm.instance_variable_get(:@last_task_heartbeat) == now-50
+        Timeout.timeout(5) do
+          sleep 0.5 until tm.instance_variable_get(:@last_task_heartbeat) == now-50
+        end
         expect(task.timeout.to_i).to eq(now-50+config[:alive_time])
+      end
+    end
+    context 'stolen' do
+      before do
+        client.backend.db.tap{|s| s.tables.each{|t| s.drop_table(t) } }
+        client.init_database
+        client.submit('key', 'test1', {'foo' => 1}, {now: now-90,compression: 'gzip'})
+        tm.start
+      end
+      after do
+        tm.stop
+      end
+      it 'raise error' do
+        tasks = client.acquire(now: now-80)
+        task1 = tasks[0]
+        expect(task1.timeout.to_i).to eq(now-80+config[:alive_time])
+
+        tasks = client.acquire(now: now-60)
+        task2 = tasks[0]
+        expect(task2.timeout.to_i).to eq(now-60+config[:alive_time])
+
+        tm.set_task(task1, double('runner'))
+        allow(Time).to receive(:now).and_return(now-50)
+
+        flag = false
+        expect(task1.runner).to receive(:kill){flag = true}
+        Timeout.timeout(5){ sleep 0.5 until flag }
       end
     end
   end
