@@ -292,7 +292,7 @@ SQL
         nil
       end
 
-      # => nil
+      # => next_timeout
       def heartbeat(task_token, alive_time, options)
         now = (options[:now] || Time.now).to_i
         next_timeout = now + alive_time
@@ -321,7 +321,7 @@ SQL
             end
           end
         }
-        nil
+        next_timeout
       end
 
       def release(task_token, alive_time, options)

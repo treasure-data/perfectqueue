@@ -39,16 +39,39 @@ describe PerfectQueue::TaskMonitor do
   end
 
   describe '#task_heartbeat' do
-    let (:tm){ PerfectQueue::TaskMonitor.new(logger: double('logger').as_null_object) }
+    let (:tm){ PerfectQueue::TaskMonitor.new(logger: double('logger').as_null_object, task_heartbeat_interval: 1) }
     let (:err){ StandardError.new('heartbeat preempted') }
+    let (:now){ Time.now.to_i }
+    let (:task){ double('task', timeout: now) }
     before do
-      task = double('task')
-      allow(task).to receive(:heartbeat!){ raise err }
       tm.set_task(task, double('runner'))
     end
     it 'calls kill_task($!) on heartbeat error' do
+      allow(task).to receive(:heartbeat!){ raise err }
       expect(tm).to receive(:kill_task).with(err).exactly(:once)
       tm.__send__(:task_heartbeat)
+    end
+    context 'normal' do
+      let (:config){ {type: 'rdb_compat', url: 'mysql2://root:@localhost/perfectqueue_test', table: 'test_queues', alive_time: 11} }
+      let (:client){ Client.new(config) }
+      before do
+        client.backend.db.tap{|s| s.tables.each{|t| s.drop_table(t) } }
+        client.init_database
+        client.submit('key', 'test1', {'foo' => 1}, {now: now-90,compression: 'gzip'})
+        tm.start
+      end
+      after do
+        tm.stop
+      end
+      it 'update timeout' do
+        tasks = client.acquire(now: now-80)
+        task = tasks[0]
+        expect(task.timeout.to_i).to eq(now-80+config[:alive_time])
+        tm.set_task(task, double('runner'))
+        allow(Time).to receive(:now).and_return(now-50)
+        sleep 1 until tm.instance_variable_get(:@last_task_heartbeat) == now-50
+        expect(task.timeout.to_i).to eq(now-50+config[:alive_time])
+      end
     end
   end
 end

@@ -294,15 +294,18 @@ describe Backend::RDBCompatBackend do
     let (:delete_timeout){ now + retention_time }
     let (:options){ {now: now} }
     before{ allow(STDERR).to receive(:puts) }
-    context 'have a queueuled task' do
+    context 'have a queued task' do
       before do
         db.submit(key, 'test', nil, {})
       end
       it 'returns nil if next_run_time is not updated' do
-        expect(db.heartbeat(task_token, 0, {now: now})).to be_nil
+        expect(db.heartbeat(task_token, 0, {now: now})).to be_a(Integer)
       end
       it 'returns nil even if next_run_time is updated' do
-        expect(db.heartbeat(task_token, 1, {})).to be_nil
+        expect(db.heartbeat(task_token, 1, {})).to be_a(Integer)
+      end
+      it 'raises PreemptedError if last_timeout is not matched' do
+        expect{db.heartbeat(task_token, 1, {last_timeout: now-100})}.to raise_error(PreemptedError)
       end
     end
     context 'no tasks' do
@@ -317,6 +320,11 @@ describe Backend::RDBCompatBackend do
       end
       it 'raises PreemptedError' do
         expect{db.heartbeat(task_token, 0, {})}.to raise_error(PreemptedError)
+      end
+    end
+    context 'stolen task' do
+      it 'raises PreemptedError if the task has unpexpected last_timeout' do
+        expect{db.heartbeat(task_token, 0, last_timeout: 0)}.to raise_error(PreemptedError)
       end
     end
   end

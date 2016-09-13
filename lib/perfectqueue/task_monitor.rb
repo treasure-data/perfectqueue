@@ -59,7 +59,7 @@ module PerfectQueue
       task.runner = runner
       @mutex.synchronize {
         @task = task
-        @last_task_heartbeat = Time.now.to_i
+        @last_task_heartbeat = @task.timeout.to_i
       }
     end
 
@@ -145,7 +145,9 @@ module PerfectQueue
 
     private
     def task_heartbeat
-      @task.heartbeat!
+      v = @task.heartbeat!(last_heartbeat: @last_task_heartbeat)
+      @task.attributes[:timeout] = v
+      v
     rescue
       # finished, preempted, etc.
       kill_task($!)
