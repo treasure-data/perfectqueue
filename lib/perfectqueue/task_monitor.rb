@@ -60,6 +60,7 @@ module PerfectQueue
       @mutex.synchronize {
         @task = task
         @last_task_heartbeat = @task.timeout.to_i
+        Thread.pass until @thread.stop? if @thread
       }
     end
 
