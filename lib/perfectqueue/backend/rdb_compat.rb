@@ -284,7 +284,7 @@ SQL
         key = task_token.key
 
         connect {
-          n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL", delete_timeout, key].update
+          n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND #{EVENT_HORIZON} < timeout", delete_timeout, key].update
           if n <= 0
             raise IdempotentAlreadyFinishedError, "task key=#{key} does not exist or already finished."
           end
@@ -305,8 +305,14 @@ SQL
           sql << ", data=?"
           params << compress_data(data.to_json, options[:compression])
         end
-        sql << " WHERE id=? AND created_at IS NOT NULL"
-        params << key
+        if last_timeout = options[:last_timeout]
+          sql << " WHERE id=? AND timeout=?"
+          params << key
+          params << last_timeout
+        else
+          sql << " WHERE id=? AND #{EVENT_HORIZON} < timeout"
+          params << key
+        end
 
         connect {
           n = @db[*params].update
@@ -315,7 +321,9 @@ SQL
             if row == nil
               raise PreemptedError, "task key=#{key} does not exist or preempted."
             elsif row[:created_at] == nil
-              raise PreemptedError, "task key=#{key} preempted."
+              raise PreemptedError, "task key=#{key} is finished or canceled"
+            elsif options[:last_timeout] && row[:timeout] != options[:last_timeout]
+              raise PreemptedError, "task key=#{key} is preempted by another worker."
             else # row[:timeout] == next_timeout
               # ok
             end

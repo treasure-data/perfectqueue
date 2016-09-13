@@ -6,6 +6,7 @@ module PerfectQueue::Backend
   class RDBBackend
     MAX_RETRY = ::PerfectQueue::Backend::RDBCompatBackend::MAX_RETRY
     DELETE_OFFSET = ::PerfectQueue::Backend::RDBCompatBackend::DELETE_OFFSET
+    EVENT_HORIZON = ::PerfectQueue::Backend::RDBCompatBackend::EVENT_HORIZON
     class Token < Struct.new(:key)
     end
 
@@ -48,7 +49,7 @@ module PerfectQueue::Backend
 
     def cancel(id, delete_timeout=3600, now=Process.clock_gettime(Process::CLOCK_REALTIME, :second))
       connect {
-        n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND created_at IS NOT NULL;", now+delete_timeout-DELETE_OFFSET, id].update
+        n = @db["UPDATE `#{@table}` SET timeout=?, created_at=NULL, resource=NULL WHERE id=? AND #{EVENT_HORIZON} < timeout;", now+delete_timeout-DELETE_OFFSET, id].update
         return n > 0
       }
     end
