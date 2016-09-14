@@ -242,9 +242,13 @@ describe Backend::RDBCompatBackend do
         expect(ary[3]).to be_an_instance_of(AcquiredTask)
         expect(ary[4]).to be_an_instance_of(AcquiredTask)
 
-        now1 = Time.at(now + alive_time)
-        expect(now1).to receive(:to_time).exactly(5).times.and_call_original
-        db.list({}){|task| expect(task.timeout).to eq now1.to_time }
+        now1 = now + alive_time
+        i = 0
+        db.list({}) do |task|
+          expect(task.timeout).to eq now1
+          i += 1
+        end
+        expect(i).to eq(5)
       end
     end
   end

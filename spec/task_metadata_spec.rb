@@ -60,10 +60,19 @@ describe PerfectQueue::TaskMetadata do
   end
 
   describe 'timeout' do
-    it 'returns a time of given timeout' do
+    it 'returns given timeout' do
       epoch = 72
       tm = TaskMetadata.new(double, double, timeout: epoch)
-      expect(tm.timeout).to eq(Time.at(epoch))
+      expect(tm.timeout).to eq(epoch)
+    end
+  end
+
+  describe 'timeout=' do
+    it 'sets timeout' do
+      epoch = 72
+      tm = TaskMetadata.new(double, double, timeout: 1)
+      tm.timeout = epoch
+      expect(tm.timeout).to eq(epoch)
     end
   end
 end

@@ -50,15 +50,11 @@ module PerfectQueue
     end
 
     def timeout
-      if t = @attributes[:timeout]
-        return Time.at(t)
-      else
-        return nil
-      end
+      @attributes[:timeout]
     end
 
-    def last_heartbeat
-      @attributes[:timeout] || 0
+    def timeout=(v)
+      @attributes[:timeout] = v
     end
 
     def finished?

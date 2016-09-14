@@ -43,15 +43,17 @@ describe PerfectQueue::TaskMonitor do
     let (:tm){ PerfectQueue::TaskMonitor.new(logger: double('logger').as_null_object, task_heartbeat_interval: 1) }
     let (:err){ StandardError.new('heartbeat preempted') }
     let (:now){ Time.now.to_i }
-    let (:task){ double('task', attributes: {}, last_heartbeat: now) }
+    let (:task){ double('task', timeout: now) }
     let (:runner){ double('runner') }
-    before do
-      tm.set_task(task, double('runner'))
-    end
-    it 'calls kill_task($!) on heartbeat error' do
-      allow(task).to receive(:heartbeat!){ raise err }
-      expect(tm).to receive(:kill_task).with(err).exactly(:once)
-      tm.__send__(:task_heartbeat)
+    context 'timeout' do
+      before do
+        tm.set_task(task, double('runner'))
+      end
+      it 'calls kill_task($!) on heartbeat error' do
+        allow(task).to receive(:heartbeat!){ raise err }
+        expect(tm).to receive(:kill_task).with(err).exactly(:once)
+        tm.__send__(:task_heartbeat)
+      end
     end
     context 'normal' do
       before do
@@ -66,10 +68,10 @@ describe PerfectQueue::TaskMonitor do
       it 'update timeout' do
         tasks = client.acquire(now: now-80)
         task = tasks[0]
-        expect(task.last_heartbeat).to eq(now-80+config[:alive_time])
+        expect(task.timeout).to eq(now-80+config[:alive_time])
         allow(Time).to receive(:now).and_return(now-50)
         tm.set_task(task, runner)
-        expect(task.last_heartbeat).to eq(now-50+config[:alive_time])
+        expect(task.timeout).to eq(now-50+config[:alive_time])
       end
     end
     context 'stolen' do
@@ -85,11 +87,11 @@ describe PerfectQueue::TaskMonitor do
       it 'raise error' do
         tasks = client.acquire(now: now-80)
         task1 = tasks[0]
-        expect(task1.timeout.to_i).to eq(now-80+config[:alive_time])
+        expect(task1.timeout).to eq(now-80+config[:alive_time])
 
         tasks = client.acquire(now: now-60)
         task2 = tasks[0]
-        expect(task2.timeout.to_i).to eq(now-60+config[:alive_time])
+        expect(task2.timeout).to eq(now-60+config[:alive_time])
 
         allow(Time).to receive(:now).and_return(now-50)
         expect(runner).to receive(:kill)
@@ -109,7 +111,7 @@ describe PerfectQueue::TaskMonitor do
       it 'raise error' do
         tasks = client.acquire(now: now-80)
         task1 = tasks[0]
-        expect(task1.timeout.to_i).to eq(now-80+config[:alive_time])
+        expect(task1.timeout).to eq(now-80+config[:alive_time])
 
         allow(Time).to receive(:now).and_return(now-50)
         tm.set_task(task1, runner)

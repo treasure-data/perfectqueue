@@ -60,7 +60,7 @@ module PerfectQueue
         @task = task
       }
       now = Time.now.to_i
-      while @task && @task.last_heartbeat + @task_heartbeat_interval < now
+      while @task && @task.timeout + @task_heartbeat_interval < now
         sleep 1
       end
     end
@@ -116,7 +116,7 @@ module PerfectQueue
           next_child_heartbeat = @last_child_heartbeat + @child_heartbeat_interval
 
           if @task
-            next_task_heartbeat = @task.last_heartbeat + @task_heartbeat_interval
+            next_task_heartbeat = @task.timeout + @task_heartbeat_interval
             next_time = [next_child_heartbeat, next_task_heartbeat].min
           else
             next_time = next_child_heartbeat
@@ -126,7 +126,7 @@ module PerfectQueue
           @cond.wait(next_wait) if next_wait > 0
 
           now = Time.now.to_i
-          if @task && @task.last_heartbeat + @task_heartbeat_interval <= now
+          if @task && @task.timeout + @task_heartbeat_interval <= now
             task_heartbeat
           end
 
@@ -145,7 +145,7 @@ module PerfectQueue
     private
     def task_heartbeat
       task = @task
-      task.attributes[:timeout] = task.heartbeat!(last_heartbeat: task.last_heartbeat)
+      task.heartbeat!
     rescue
       # finished, preempted, etc.
       kill_task($!)
