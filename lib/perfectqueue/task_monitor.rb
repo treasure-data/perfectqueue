@@ -28,6 +28,7 @@ module PerfectQueue
       @child_heartbeat_interval = (@config[:child_heartbeat_interval] || 2).to_i
       @task_heartbeat_interval = (@config[:task_heartbeat_interval] || 2).to_i
       @last_child_heartbeat = Time.now.to_i
+      @last_task_heartbeat = Time.now.to_i
 
       @task = nil
 
@@ -51,18 +52,22 @@ module PerfectQueue
       @thread.join
     end
 
-    def set_task(task, runner)
+    def set_task(task, runner, last_heartbeat=Time.now.to_i)
       task.extend(TaskMonitorHook)
       task.log = @log
       task.task_monitor = self
       task.runner = runner
       @mutex.synchronize {
         @task = task
+        @last_task_heartbeat = last_heartbeat
+        @cond.broadcast
       }
       now = Time.now.to_i
-      while @task && @task.timeout + @task_heartbeat_interval < now
-        sleep 1
-      end
+      Timeout.timeout(60) do
+        while @task && @last_task_heartbeat + @task_heartbeat_interval < now
+          sleep 1
+        end
+      end rescue nil
     end
 
     def stop_task(immediate)
@@ -116,7 +121,7 @@ module PerfectQueue
           next_child_heartbeat = @last_child_heartbeat + @child_heartbeat_interval
 
           if @task
-            next_task_heartbeat = @task.timeout + @task_heartbeat_interval
+            next_task_heartbeat = @last_task_heartbeat + @task_heartbeat_interval
             next_time = [next_child_heartbeat, next_task_heartbeat].min
           else
             next_time = next_child_heartbeat
@@ -126,8 +131,9 @@ module PerfectQueue
           @cond.wait(next_wait) if next_wait > 0
 
           now = Time.now.to_i
-          if @task && @task.timeout + @task_heartbeat_interval <= now
+          if @task && @last_task_heartbeat + @task_heartbeat_interval <= now
             task_heartbeat
+            @last_task_heartbeat = now
           end
 
           if next_child_heartbeat <= now
@@ -144,12 +150,10 @@ module PerfectQueue
 
     private
     def task_heartbeat
-      task = @task
-      task.heartbeat!
+      @task.heartbeat!
     rescue
       # finished, preempted, etc.
       kill_task($!)
-      @task = nil
     end
   end
 

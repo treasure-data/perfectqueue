@@ -64,13 +64,14 @@ describe PerfectQueue::TaskMonitor do
       end
       after do
         tm.stop
+        tm.join
       end
       it 'update timeout' do
         tasks = client.acquire(now: now-80)
         task = tasks[0]
         expect(task.timeout).to eq(now-80+config[:alive_time])
         allow(Time).to receive(:now).and_return(now-50)
-        tm.set_task(task, runner)
+        tm.set_task(task, runner, now-80)
         expect(task.timeout).to eq(now-50+config[:alive_time])
       end
     end
@@ -83,19 +84,23 @@ describe PerfectQueue::TaskMonitor do
       end
       after do
         tm.stop
+        tm.join
       end
       it 'raise error' do
-        tasks = client.acquire(now: now-80)
+        now1 = now - 80
+        tasks = client.acquire(now: now1)
         task1 = tasks[0]
-        expect(task1.timeout).to eq(now-80+config[:alive_time])
+        expect(task1.timeout).to eq(now1+config[:alive_time])
 
-        tasks = client.acquire(now: now-60)
+        now2 = now - 50
+        tasks = client.acquire(now: now2)
         task2 = tasks[0]
-        expect(task2.timeout).to eq(now-60+config[:alive_time])
+        expect(task2.timeout).to eq(now2+config[:alive_time])
 
-        allow(Time).to receive(:now).and_return(now-50)
+        now3 = now - 20
+        allow(Time).to receive(:now).and_return(now3)
         expect(runner).to receive(:kill)
-        tm.set_task(task1, runner)
+        tm.set_task(task1, runner, now1)
       end
     end
     context 'timeout but can acquire' do
@@ -107,6 +112,7 @@ describe PerfectQueue::TaskMonitor do
       end
       after do
         tm.stop
+        tm.join
       end
       it 'raise error' do
         tasks = client.acquire(now: now-80)
@@ -114,7 +120,7 @@ describe PerfectQueue::TaskMonitor do
         expect(task1.timeout).to eq(now-80+config[:alive_time])
 
         allow(Time).to receive(:now).and_return(now-50)
-        tm.set_task(task1, runner)
+        tm.set_task(task1, runner, now-50)
 
         expect(task1.runner).to eq(runner)
       end
