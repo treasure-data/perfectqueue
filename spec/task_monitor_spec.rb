@@ -23,7 +23,6 @@ describe PerfectQueue::TaskMonitor do
       ret = double('ret')
       tm.instance_variable_set(:@task, task)
       expect(tm.external_task_heartbeat(task){ret}).to eq(ret)
-      expect(tm.instance_variable_get(:@last_task_heartbeat)).to eq(epoch)
     end
   end
 
@@ -44,7 +43,8 @@ describe PerfectQueue::TaskMonitor do
     let (:tm){ PerfectQueue::TaskMonitor.new(logger: double('logger').as_null_object, task_heartbeat_interval: 1) }
     let (:err){ StandardError.new('heartbeat preempted') }
     let (:now){ Time.now.to_i }
-    let (:task){ double('task', timeout: now) }
+    let (:task){ double('task', attributes: {}, last_heartbeat: now) }
+    let (:runner){ double('runner') }
     before do
       tm.set_task(task, double('runner'))
     end
@@ -66,13 +66,10 @@ describe PerfectQueue::TaskMonitor do
       it 'update timeout' do
         tasks = client.acquire(now: now-80)
         task = tasks[0]
-        expect(task.timeout.to_i).to eq(now-80+config[:alive_time])
-        tm.set_task(task, double('runner'))
+        expect(task.last_heartbeat).to eq(now-80+config[:alive_time])
         allow(Time).to receive(:now).and_return(now-50)
-        Timeout.timeout(5) do
-          sleep 0.5 until tm.instance_variable_get(:@last_task_heartbeat) == now-50
-        end
-        expect(task.timeout.to_i).to eq(now-50+config[:alive_time])
+        tm.set_task(task, runner)
+        expect(task.last_heartbeat).to eq(now-50+config[:alive_time])
       end
     end
     context 'stolen' do
@@ -94,12 +91,30 @@ describe PerfectQueue::TaskMonitor do
         task2 = tasks[0]
         expect(task2.timeout.to_i).to eq(now-60+config[:alive_time])
 
-        tm.set_task(task1, double('runner'))
         allow(Time).to receive(:now).and_return(now-50)
+        expect(runner).to receive(:kill)
+        tm.set_task(task1, runner)
+      end
+    end
+    context 'timeout but can acquire' do
+      before do
+        client.backend.db.tap{|s| s.tables.each{|t| s.drop_table(t) } }
+        client.init_database
+        client.submit('key', 'test1', {'foo' => 1}, {now: now-90,compression: 'gzip'})
+        tm.start
+      end
+      after do
+        tm.stop
+      end
+      it 'raise error' do
+        tasks = client.acquire(now: now-80)
+        task1 = tasks[0]
+        expect(task1.timeout.to_i).to eq(now-80+config[:alive_time])
 
-        flag = false
-        expect(task1.runner).to receive(:kill){flag = true}
-        Timeout.timeout(5){ sleep 0.5 until flag }
+        allow(Time).to receive(:now).and_return(now-50)
+        tm.set_task(task1, runner)
+
+        expect(task1.runner).to eq(runner)
       end
     end
   end
@@ -107,7 +122,7 @@ end
 
 describe PerfectQueue::TaskMonitorHook do
   let (:task) do
-    obj = AcquiredTask.new(double(:client).as_null_object, 'key', {}, double)
+    obj = AcquiredTask.new(double(:client).as_null_object, 'key', {timeout: Time.now.to_i}, double)
     tm = TaskMonitor.new(logger: double('logger').as_null_object)
     tm.set_task(obj, double('runner'))
     obj

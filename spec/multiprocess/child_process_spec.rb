@@ -73,7 +73,7 @@ describe PerfectQueue::Multiprocess::ChildProcess do
   end
 
   describe '#process' do
-    let (:task){ double('task', key: double, timeout: Time.now.to_i) }
+    let (:task){ double('task', key: double, last_heartbeat: Time.now.to_i) }
     before do
       expect(runner_insntace).to receive(:run)
     end

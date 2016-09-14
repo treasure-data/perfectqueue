@@ -57,6 +57,10 @@ module PerfectQueue
       end
     end
 
+    def last_heartbeat
+      @attributes[:timeout] || 0
+    end
+
     def finished?
       status == TaskStatus::FINISHED
     end

@@ -28,7 +28,6 @@ module PerfectQueue
       @child_heartbeat_interval = (@config[:child_heartbeat_interval] || 2).to_i
       @task_heartbeat_interval = (@config[:task_heartbeat_interval] || 2).to_i
       @last_child_heartbeat = Time.now.to_i
-      @last_task_heartbeat = Time.now.to_i
 
       @task = nil
 
@@ -59,9 +58,11 @@ module PerfectQueue
       task.runner = runner
       @mutex.synchronize {
         @task = task
-        @last_task_heartbeat = @task.timeout.to_i
-        Thread.pass until @thread.stop? if @thread
       }
+      now = Time.now.to_i
+      while @task && @task.last_heartbeat + @task_heartbeat_interval < now
+        sleep 1
+      end
     end
 
     def stop_task(immediate)
@@ -102,7 +103,6 @@ module PerfectQueue
       @mutex.synchronize {
         if task == @task
           ret = block.call if block
-          @last_task_heartbeat = Time.now.to_i
         end
         ret
       }
@@ -116,10 +116,9 @@ module PerfectQueue
           next_child_heartbeat = @last_child_heartbeat + @child_heartbeat_interval
 
           if @task
-            next_task_heartbeat = @last_task_heartbeat + @task_heartbeat_interval
+            next_task_heartbeat = @task.last_heartbeat + @task_heartbeat_interval
             next_time = [next_child_heartbeat, next_task_heartbeat].min
           else
-            next_task_heartbeat = nil
             next_time = next_child_heartbeat
           end
 
@@ -127,9 +126,8 @@ module PerfectQueue
           @cond.wait(next_wait) if next_wait > 0
 
           now = Time.now.to_i
-          if @task && next_task_heartbeat && next_task_heartbeat <= now
+          if @task && @task.last_heartbeat + @task_heartbeat_interval <= now
             task_heartbeat
-            @last_task_heartbeat = now
           end
 
           if next_child_heartbeat <= now
@@ -146,12 +144,12 @@ module PerfectQueue
 
     private
     def task_heartbeat
-      v = @task.heartbeat!(last_heartbeat: @last_task_heartbeat)
-      @task.attributes[:timeout] = v
-      v
+      task = @task
+      task.attributes[:timeout] = task.heartbeat!(last_heartbeat: task.last_heartbeat)
     rescue
       # finished, preempted, etc.
       kill_task($!)
+      @task = nil
     end
   end
 
