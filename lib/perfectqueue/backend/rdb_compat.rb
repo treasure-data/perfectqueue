@@ -196,16 +196,11 @@ SQL
 
       def compress_data(data, compression)
         if compression == 'gzip'
-          io = StringIO.new
-          io.set_encoding(Encoding::ASCII_8BIT)
-          gz = Zlib::GzipWriter.new(io)
-          begin
+          io = StringIO.new.binmode
+          Zlib::GzipWriter.wrap(io) do |gz|
             gz.write(data)
-          ensure
-            gz.close
           end
-          data = io.string
-          data = Sequel::SQL::Blob.new(data)
+          data = Sequel::SQL::Blob.new(io.string)
         end
         data
       end
@@ -385,7 +380,7 @@ SQL
         end
       end
 
-      GZIP_MAGIC_BYTES = [0x1f, 0x8b].pack('CC')
+      GZIP_MAGIC_BYTES = "\x1f\x8b".b
 
       def create_attributes(now, row)
         compression = nil
@@ -403,25 +398,15 @@ SQL
         d = row[:data]
         if d == nil || d == ''
           data = {}
-
         else
           # automatic gzip decompression
-          d.force_encoding('ASCII-8BIT') if d.respond_to?(:force_encoding)
-          if d[0, 2] == GZIP_MAGIC_BYTES
+          if d.start_with?(GZIP_MAGIC_BYTES)
             compression = 'gzip'
-            gz = Zlib::GzipReader.new(StringIO.new(d))
-            begin
+            Zlib::GzipReader.wrap(StringIO.new(d).binmode) do |gz|
               d = gz.read
-            ensure
-              gz.close
             end
           end
-
-          begin
-            data = JSON.parse(d)
-          rescue
-            data = {}
-          end
+          data = JSON.parse(d) rescue {}
         end
 
         type = data.delete('type')
