@@ -66,13 +66,4 @@ describe PerfectQueue::TaskMetadata do
       expect(tm.timeout).to eq(epoch)
     end
   end
-
-  describe 'timeout=' do
-    it 'sets timeout' do
-      epoch = 72
-      tm = TaskMetadata.new(double, double, timeout: 1)
-      tm.timeout = epoch
-      expect(tm.timeout).to eq(epoch)
-    end
-  end
 end

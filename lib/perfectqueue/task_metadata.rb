@@ -53,10 +53,6 @@ module PerfectQueue
       @attributes[:timeout]
     end
 
-    def timeout=(v)
-      @attributes[:timeout] = v
-    end
-
     def finished?
       status == TaskStatus::FINISHED
     end
