@@ -195,12 +195,15 @@ SQL
       end
 
       def compress_data(data, compression)
-        if compression == 'gzip'
+        case compression
+        when 'gzip'
           io = StringIO.new.binmode
           Zlib::GzipWriter.wrap(io) do |gz|
             gz.write(data)
           end
           data = Sequel::SQL::Blob.new(io.string)
+        when 'mysql-compress'
+          data = [data.bytesize].pack('i') << Zlib.deflate(data)
         end
         data
       end
@@ -381,6 +384,7 @@ SQL
       end
 
       GZIP_MAGIC_BYTES = "\x1f\x8b".b
+      MYSQL_COMPRESS_MAGIC_BYTES = "MYSQLCOMPRESS"
 
       def create_attributes(now, row)
         compression = nil
@@ -405,6 +409,10 @@ SQL
             Zlib::GzipReader.wrap(StringIO.new(d).binmode) do |gz|
               d = gz.read
             end
+          elsif d.start_with?(MYSQL_COMPRESS_MAGIC_BYTES)
+            compression = 'mysql-compress'
+            d.slice(0, MYSQL_COMPRESS_MAGIC_BYTES.size+4)
+            d = Zlib.inflate(d)
           end
           data = JSON.parse(d) rescue {}
         end
