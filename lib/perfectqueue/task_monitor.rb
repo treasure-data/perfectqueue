@@ -63,11 +63,9 @@ module PerfectQueue
         @cond.broadcast
       }
       now = Time.now.to_i
-      Timeout.timeout(60) do
-        while @task && @last_task_heartbeat + @task_heartbeat_interval < now
-          sleep 1
-        end
-      end rescue nil
+      while @task && @last_task_heartbeat + @task_heartbeat_interval < now
+        sleep 1
+      end
     end
 
     def stop_task(immediate)
