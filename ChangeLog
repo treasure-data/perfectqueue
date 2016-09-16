@@ -1,8 +1,9 @@
-== 2016-xx-xx version 0.9.0
+== 2016-09-16 version 0.9.0
 
 * Use UPDATE first strategy (#15)
   * owner column is added for the table: migration is required
   * AcquiredTask#timeout is the current value rather than at acquiring
+  * cancel_request is removed
   * prefetch_break_types is removed
 
 == 2016-08-02 version 0.8.49
