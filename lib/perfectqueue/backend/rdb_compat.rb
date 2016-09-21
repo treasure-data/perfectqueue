@@ -91,7 +91,7 @@ UPDATE `#{@table}`
     FROM `#{@table}` FORCE INDEX (`index_#{@table}_on_timeout`)
    WHERE #{EVENT_HORIZON} < timeout AND timeout <= :now
    ORDER BY timeout ASC
-      LIMIT :max_acquire FOR UPDATE) AS t1 USING(id)
+      LIMIT :max_acquire) AS t1 USING(id)
    SET timeout=:next_timeout, owner=CONNECTION_ID()
 SQL
           @sql = <<SQL
@@ -110,12 +110,10 @@ UPDATE `#{@table}`
       FROM `#{@table}` AS t1
       WHERE timeout > :now AND resource IS NOT NULL
       GROUP BY resource
-      FOR UPDATE
     ) AS t2 USING(resource)
     WHERE #{EVENT_HORIZON} < timeout AND timeout <= :now AND IFNULL(max_running - running, 1) > 0
     ORDER BY weight DESC, timeout ASC
     LIMIT :max_acquire
-    FOR UPDATE
   ) AS t3 USING (id)
 SET timeout = :next_timeout, owner = CONNECTION_ID()
 SQL
@@ -257,6 +255,7 @@ SQL
           if n <= 0
             return nil
           end
+          @table_unlock.call
 
           tasks = []
           @db.fetch(@sql, next_timeout) {|row|

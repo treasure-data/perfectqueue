@@ -149,7 +149,7 @@ def insert(queue)
 "params":{}}
     begin
       n = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
-      queue.submit("import.1/main.action_#{n}_#{rd.hex(80)}", 'user02', h, now: t)
+      queue.submit("import.1/main.action_#{n}_#{rd.hex(20)}", 'user02', h, now: t)
     rescue
       p $!
       sleep 1
@@ -165,6 +165,7 @@ def worker(queue)
     t0 = t = Process.clock_gettime(Process::CLOCK_REALTIME, :second)
     begin
       ary = queue.poll_multi(max_acquire: 11, now: t)
+      sleep 1
       ary.each do |x|
         x.finish!({})
       end if ary
