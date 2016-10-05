@@ -96,7 +96,7 @@ describe Backend::RDBCompatBackend do
     end
     it 'supports mysql' do
       expect(Backend::RDBCompatBackend.new(client, config)).to be_an_instance_of(Backend::RDBCompatBackend)
-      expect(db.instance_variable_get(:@sql)).to include('max_running')
+      expect(db.instance_variable_get(:@disable_resource_limit)).to be_falsey
     end
     it 'doesn\'t support postgres' do
       config = {url: 'postgres://localhost', table: table}
@@ -110,7 +110,7 @@ describe Backend::RDBCompatBackend do
     it 'disable_resource_limit' do
       config = {url: 'mysql2://root:@localhost/perfectqueue_test', table: table, disable_resource_limit: true}
       db = Backend::RDBCompatBackend.new(client, config)
-      expect(db.instance_variable_get(:@sql)).not_to include('max_running')
+      expect(db.instance_variable_get(:@disable_resource_limit)).to be_truthy
     end
   end
 
