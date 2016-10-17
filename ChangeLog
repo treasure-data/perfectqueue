@@ -1,3 +1,8 @@
+== 2016-08-18 version 0.8.50
+
+* Decrease GET_LOCK timeout from 60 to 10 seconds
+* Add 0.5 to 30 seconds of sleep between GET_LOCK retrying
+
 == 2016-08-02 version 0.8.49
 
 * Revert v0.8.44 migration path (#38)
