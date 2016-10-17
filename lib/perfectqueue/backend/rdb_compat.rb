@@ -33,6 +33,9 @@ module PerfectQueue
       DELETE_OFFSET = 10_0000_0000
       EVENT_HORIZON = 13_0000_0000 # 2011-03-13 07:06:40 UTC
 
+      LOCK_RETRY_INITIAL_INTERVAL = 0.5
+      LOCK_RETRY_MAX_INTERVAL = 30
+
       class Token < Struct.new(:key)
       end
 
@@ -57,11 +60,14 @@ module PerfectQueue
           end
           @table_lock = lambda {
             locked = nil
+            interval = LOCK_RETRY_INITIAL_INTERVAL
             loop do
               @db.fetch("SELECT GET_LOCK('#{@table}', #{LOCK_WAIT_TIMEOUT}) locked") do |row|
                 locked = true if row[:locked] == 1
               end
               break if locked
+              sleep interval
+              interval = [interval * 2, LOCK_RETRY_MAX_INTERVAL].min
             end
           }
           @table_unlock = lambda {
@@ -90,7 +96,7 @@ module PerfectQueue
 
       KEEPALIVE = 10
       MAX_RETRY = 10
-      LOCK_WAIT_TIMEOUT = 60
+      LOCK_WAIT_TIMEOUT = 10
       DEFAULT_DELETE_INTERVAL = 20
 
       def init_database(options)
