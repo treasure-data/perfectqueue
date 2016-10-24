@@ -1,3 +1,7 @@
+== 2016-10-24 version 0.8.51
+
+* Retry on temporary DatabaseConnectionError (#59)
+
 == 2016-08-18 version 0.8.50
 
 * Decrease GET_LOCK timeout from 60 to 10 seconds
