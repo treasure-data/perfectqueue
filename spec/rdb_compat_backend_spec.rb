@@ -376,6 +376,18 @@ describe Backend::RDBCompatBackend do
           end
         end.to raise_error(RuntimeError)
       end
+      context 'cannot connect' do
+        let (:config){ {url: 'mysql2://root:@nonexistent/perfectqueue_test', table: table} }
+        it 'raises Sequel::DatabaseConnectionError' do
+          allow(STDERR).to receive(:puts)
+          d = Backend::RDBCompatBackend.new(client, config)
+          slept = 0
+          expect(d).to receive(:sleep).exactly(9).times{|n| slept += n }
+          expect(d.db).to receive(:connect).exactly(10).times.and_call_original
+          expect{ d.__send__(:connect){ d.db.run('SELECT 1;') } }.to raise_error(Sequel::DatabaseConnectionError)
+          expect(slept).to eq(18)
+        end
+      end
     end
   end
 
