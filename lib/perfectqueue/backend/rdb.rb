@@ -26,6 +26,7 @@ module PerfectQueue::Backend
       options[:sslca] = config[:sslca] if config[:sslca]
       db_name = u.path.split('/')[1]
       @db = Sequel.mysql2(db_name, options)
+      @logger = config[:logger] || STDERR
 
       @mutex = Mutex.new
       connect {
@@ -64,11 +65,11 @@ module PerfectQueue::Backend
           yield
         rescue Sequel::DatabaseConnectionError
           if (retry_count += 1) < MAX_RETRY && tmax > Process.clock_gettime(Process::CLOCK_REALTIME, :second)
-            STDERR.puts "#{$!}\n  retrying."
+            @logger.puts "#{$!}\n  retrying."
             sleep 2
             retry
           end
-          STDERR.puts "#{$!}\n  abort."
+          @logger.puts "#{$!}\n  abort."
           raise
         rescue
           # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
@@ -76,11 +77,11 @@ module PerfectQueue::Backend
             err = $!.backtrace.map{|bt| "  #{bt}" }.unshift($!).join("\n")
             retry_count += 1
             if retry_count < MAX_RETRY
-              STDERR.puts "#{err}\n  retrying."
+              @logger.puts "#{err}\n  retrying."
               sleep 0.5
               retry
             end
-            STDERR.puts "#{err}\n  abort."
+            @logger.puts "#{err}\n  abort."
           end
           raise
         ensure

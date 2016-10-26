@@ -42,6 +42,7 @@ module PerfectQueue
       def initialize(client, config)
         super
 
+        @logger = config[:logger] || STDERR
         @pq_connect_timeout = config.fetch(:pq_connect_timeout, 20)
         url = config[:url]
         @table = config[:table]
@@ -205,7 +206,7 @@ module PerfectQueue
             t0=Process.clock_gettime(Process::CLOCK_MONOTONIC)
             @db["DELETE FROM `#{@table}` WHERE timeout <= ?", now-DELETE_OFFSET].delete
             @cleanup_interval_count = @cleanup_interval
-            STDERR.puts"PQ:delete from #{@table}:%6f sec" % [Process.clock_gettime(Process::CLOCK_MONOTONIC)-t0]
+            @logger.puts"PQ:delete from #{@table}:%6f sec" % [Process.clock_gettime(Process::CLOCK_MONOTONIC)-t0]
           }
         end
 
@@ -304,11 +305,11 @@ module PerfectQueue
             @last_time = now
           rescue Sequel::DatabaseConnectionError
             if (count += 1) < MAX_RETRY && tmax > Time.now.to_i
-              STDERR.puts "#{$!}\n  retrying."
+              @logger.puts "#{$!}\n  retrying."
               sleep 2
               retry
             end
-            STDERR.puts "#{$!}\n  abort."
+            @logger.puts "#{$!}\n  abort."
             raise
           rescue
             # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
@@ -316,17 +317,17 @@ module PerfectQueue
               err = ([$!] + $!.backtrace.map {|bt| "  #{bt}" }).join("\n")
               count += 1
               if count < MAX_RETRY
-                STDERR.puts err + "\n  retrying."
+                @logger.puts err + "\n  retrying."
                 sleep rand
                 retry
               else
-                STDERR.puts err + "\n  abort."
+                @logger.puts err + "\n  abort."
               end
             else
               err = $!
             end
 
-            STDERR.puts "disconnects current connection: #{err}"
+            @logger.puts "disconnects current connection: #{err}"
             @db.disconnect
 
             raise
@@ -424,7 +425,7 @@ SQL
           t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           n = @db[update_sql, next_timeout: next_timeout, now: now, max_acquire: max_acquire].update
           @table_unlock.call
-          STDERR.puts "PQ:acquire from #{@table}:%6f sec (%d tasks)" % [Process.clock_gettime(Process::CLOCK_MONOTONIC)-t0,n]
+          @logger.puts "PQ:acquire from #{@table}:%6f sec (%d tasks)" % [Process.clock_gettime(Process::CLOCK_MONOTONIC)-t0,n]
           return nil if n <= 0
 
           tasks = []
@@ -484,7 +485,7 @@ SQL
         @cleanup_interval_count -= 1
         return tasks
       ensure
-        STDERR.puts "PQ:acquire from #{@table}:%6f sec (%d tasks)" % \
+        @logger.puts "PQ:acquire from #{@table}:%6f sec (%d tasks)" % \
           [Process.clock_gettime(Process::CLOCK_MONOTONIC)-t0, tasks.size] if tasks
       end
     end
