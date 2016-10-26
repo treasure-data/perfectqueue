@@ -65,16 +65,19 @@ module PerfectQueue::Backend
           yield
         rescue Sequel::DatabaseConnectionError
           if (retry_count += 1) < MAX_RETRY && tmax > Process.clock_gettime(Process::CLOCK_REALTIME, :second)
-            @logger.puts "#{$!}\n  retrying."
+            @logger.puts "#{$!.inspect};  retrying."
             sleep 2
             retry
           end
-          @logger.puts "#{$!}\n  abort."
+          @logger.puts "#{$!.inspect};  abort."
           raise
         rescue
           # workaround for "Mysql2::Error: Deadlock found when trying to get lock; try restarting transaction" error
           if $!.to_s.include?('try restarting transaction')
-            err = $!.backtrace.map{|bt| "  #{bt}" }.unshift($!).join("\n")
+            err = $!.inspect
+            $!.backtrace.each do |bt|
+              err << "\n  " << bt
+            end
             retry_count += 1
             if retry_count < MAX_RETRY
               @logger.puts "#{err}\n  retrying."
