@@ -21,8 +21,8 @@ module PerfectQueue::Backend
         host: u.host,
         port: u.port ? u.port.to_i : 3306
       }
-      @pq_connect_timeout = config.fetch(:pq_connect_timeout, 20)
-      options[:connect_timeout] = config.fetch(:connect_timeout, 3)
+      @pq_connect_timeout = config.fetch(:pq_connect_timeout, 120)
+      options[:connect_timeout] = config.fetch(:connect_timeout, 30)
       options[:sslca] = config[:sslca] if config[:sslca]
       db_name = u.path.split('/')[1]
       @db = Sequel.mysql2(db_name, options)
