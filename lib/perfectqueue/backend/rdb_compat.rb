@@ -42,7 +42,7 @@ module PerfectQueue
       def initialize(client, config)
         super
 
-        @pq_connect_timeout = config.fetch(:pq_connect_timeout, 20)
+        @pq_connect_timeout = config.fetch(:pq_connect_timeout, 120)
         url = config[:url]
         @table = config[:table]
         unless @table
@@ -51,7 +51,7 @@ module PerfectQueue
 
         if /\Amysql2:/i =~ url
           options = {max_connections: 1, sslca: config[:sslca]}
-          options[:connect_timeout] = config.fetch(:connect_timeout, 3)
+          options[:connect_timeout] = config.fetch(:connect_timeout, 30)
           @db = Sequel.connect(url, options)
           if config.fetch(:use_connection_pooling, nil) != nil
             @use_connection_pooling = !!config[:use_connection_pooling]
