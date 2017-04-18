@@ -24,13 +24,19 @@ describe PerfectQueue::Multiprocess::ThreadProcessor do
   end
 
   describe '#run_loop' do
+    let (:runner) do
+      r = double('runner')
+      allow(r).to receive(:after_child_end)
+      r
+    end
     let (:processor) do
       config = {logger: double('logger').as_null_object}
-      Multiprocess::ThreadProcessor.new(double('runner'), double('processor_id'), config)
+      Multiprocess::ThreadProcessor.new(runner, double('processor_id'), config)
     end
     it 'rescues error' do
       pq = object_double('PerfectQueue').as_stubbed_const
       allow(pq).to receive(:open).and_raise(RuntimeError)
+      expect(runner).to receive(:after_child_end)
       processor.__send__(:run_loop)
     end
   end

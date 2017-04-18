@@ -118,6 +118,7 @@ module PerfectQueue
         $!.backtrace.each {|bt| @log.warn "\t#{bt}" }
       ensure
         @tm.stop
+        @runner.after_child_end if @runner.respond_to?(:after_child_end)
       end
 
       def process(task)
