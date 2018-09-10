@@ -18,7 +18,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ['lib']
 
   gem.required_ruby_version = '>= 2.1'
-  gem.add_dependency "sequel"
+  gem.add_dependency "sequel", "~> 3.48.0"
   gem.add_development_dependency "rake", "~> 0.9.2"
   gem.add_development_dependency "rspec", "~> 3.3.0"
   gem.add_development_dependency "simplecov", "~> 0.10.0"
