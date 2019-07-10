@@ -71,16 +71,8 @@ describe Backend::RDBBackend do
     end
     context 'cannot connect' do
       let (:uri){ 'mysql2://root:@nonexistent/perfectqueue_test' }
-      let (:db) do
-        Backend::RDBBackend.new(uri, table)
-      end
       it 'raises Sequel::DatabaseConnectionError' do
-        allow(STDERR).to receive(:puts)
-        slept = 0
-        expect(db).to receive(:sleep).exactly(9).times{|n| slept += n }
-        expect(db.db).to receive(:connect).exactly(10).times.and_call_original
-        expect{ db.__send__(:connect){ db.db.run('SELECT 1;') } }.to raise_error(Sequel::DatabaseConnectionError)
-        expect(slept).to be < 30
+        expect { Backend::RDBBackend.new(uri, table) }.to raise_error(Sequel::DatabaseConnectionError)
       end
     end
   end
