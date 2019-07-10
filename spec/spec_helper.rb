@@ -16,6 +16,7 @@ if ENV["CI"]
 end
 
 require 'fileutils'
+require 'tempfile'
 
 module QueueTest
   def self.included(mod)

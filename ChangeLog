@@ -1,3 +1,9 @@
+== 2019-07-xx version 0.10.0
+
+* Relax sequel version constraint (#62)
+  * Using sequel 4+ raises `Sequel::DatabaseConnectionError` on
+  `Backend::RDBBackend.new` instead of its `#connect`.
+
 == 2016-10-07 version 0.9.2
 
 * Use v08's strategy if resource limit is used (#55)
