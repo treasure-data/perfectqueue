@@ -1,4 +1,4 @@
-== 2019-07-xx version 0.10.0
+== 2019-07-10 version 0.10.0
 
 * Relax sequel version constraint (#62)
   * Using sequel 4+ raises `Sequel::DatabaseConnectionError` on
