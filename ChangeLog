@@ -1,3 +1,7 @@
+== 2019-07-31 version 0.8.52
+
+* Add sleep lock retrying with exponential-backoff (#64)
+
 == 2016-10-24 version 0.8.51
 
 * Retry on temporary DatabaseConnectionError (#59)
