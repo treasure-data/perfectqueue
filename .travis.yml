@@ -1,8 +1,12 @@
 rvm:
-  - 2.1.10
-  - 2.2.5
-  - 2.3.1
+  - 2.3.8
+  - 2.4.6
+  - 2.5.5
+  - 2.6.3
   - ruby-head
+
+services:
+  - mysql
 
 script: "bundle exec rake spec"
 
