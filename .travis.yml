@@ -5,6 +5,9 @@ rvm:
   - 2.6.3
   - ruby-head
 
+services:
+  - mysql
+
 script: "bundle exec rake spec"
 
 before_script:
