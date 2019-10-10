@@ -55,7 +55,7 @@ describe Backend::RDBBackend do
     end
     context 'error' do
       it 'returns block result' do
-        expect(RuntimeError).to receive(:new).exactly(Backend::RDBBackend::MAX_RETRY).and_call_original
+        expect(RuntimeError).to receive(:new).exactly(db.max_retry_count).and_call_original
         allow(STDERR).to receive(:puts)
         allow(db).to receive(:sleep)
         expect do
