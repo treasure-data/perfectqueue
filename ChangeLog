@@ -1,3 +1,7 @@
+== 2019-10-10 version 0.8.53
+
+* Extract max_retry_count as config parameter (#66)
+
 == 2019-07-31 version 0.8.52
 
 * Add sleep lock retrying with exponential-backoff (#64)
