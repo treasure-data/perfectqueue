@@ -43,7 +43,7 @@ module PerfectQueue
         super
 
         @pq_connect_timeout = config.fetch(:pq_connect_timeout, 20)
-        @max_retry_count = config.fetch(:max_retry_count, 10);
+        @max_retry_count = config.fetch(:max_retry_count, 10)
         url = config[:url]
         @table = config[:table]
         unless @table

@@ -21,7 +21,7 @@ module PerfectQueue::Backend
         port: u.port ? u.port.to_i : 3306
       }
       @pq_connect_timeout = config.fetch(:pq_connect_timeout, 20)
-      @max_retry_count = config.fetch(:max_retry_count, 10);
+      @max_retry_count = config.fetch(:max_retry_count, 10)
       options[:connect_timeout] = config.fetch(:connect_timeout, 3)
       options[:sslca] = config[:sslca] if config[:sslca]
       db_name = u.path.split('/')[1]
