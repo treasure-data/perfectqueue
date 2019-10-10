@@ -4,7 +4,6 @@ require_relative 'rdb_compat'
 
 module PerfectQueue::Backend
   class RDBBackend
-    MAX_RETRY = ::PerfectQueue::Backend::RDBCompatBackend::MAX_RETRY
     DELETE_OFFSET = ::PerfectQueue::Backend::RDBCompatBackend::DELETE_OFFSET
     class Token < Struct.new(:key)
     end
@@ -22,6 +21,7 @@ module PerfectQueue::Backend
         port: u.port ? u.port.to_i : 3306
       }
       @pq_connect_timeout = config.fetch(:pq_connect_timeout, 20)
+      @max_retry_count = config.fetch(:max_retry_count, 10)
       options[:connect_timeout] = config.fetch(:connect_timeout, 3)
       options[:sslca] = config[:sslca] if config[:sslca]
       db_name = u.path.split('/')[1]
@@ -34,6 +34,7 @@ module PerfectQueue::Backend
     end
 
     attr_reader :db
+    attr_reader :max_retry_count
 
     def submit(id, data, time=Process.clock_gettime(Process::CLOCK_REALTIME, :second), resource=nil, max_running=nil)
       connect {
@@ -63,7 +64,7 @@ module PerfectQueue::Backend
         begin
           yield
         rescue Sequel::DatabaseConnectionError
-          if (retry_count += 1) < MAX_RETRY && tmax > Process.clock_gettime(Process::CLOCK_REALTIME, :second)
+          if (retry_count += 1) < @max_retry_count && tmax > Process.clock_gettime(Process::CLOCK_REALTIME, :second)
             STDERR.puts "#{$!}\n  retrying."
             sleep 2
             retry
@@ -75,7 +76,7 @@ module PerfectQueue::Backend
           if $!.to_s.include?('try restarting transaction')
             err = $!.backtrace.map{|bt| "  #{bt}" }.unshift($!).join("\n")
             retry_count += 1
-            if retry_count < MAX_RETRY
+            if retry_count < @max_retry_count
               STDERR.puts "#{err}\n  retrying."
               sleep 0.5
               retry

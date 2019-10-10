@@ -43,6 +43,7 @@ module PerfectQueue
         super
 
         @pq_connect_timeout = config.fetch(:pq_connect_timeout, 20)
+        @max_retry_count = config.fetch(:max_retry_count, 10)
         url = config[:url]
         @table = config[:table]
         unless @table
@@ -121,9 +122,9 @@ SQL
       end
 
       attr_reader :db
+      attr_reader :max_retry_count
 
       KEEPALIVE = 10
-      MAX_RETRY = 10
       LOCK_WAIT_TIMEOUT = 10
       DEFAULT_DELETE_INTERVAL = 20
 
@@ -373,7 +374,7 @@ SQL
             yield
             @last_time = now
           rescue Sequel::DatabaseConnectionError
-            if (count += 1) < MAX_RETRY && tmax > Time.now.to_i
+            if (count += 1) < @max_retry_count && tmax > Time.now.to_i
               STDERR.puts "#{$!}\n  retrying."
               sleep 2
               retry
@@ -385,7 +386,7 @@ SQL
             if $!.to_s.include?('try restarting transaction')
               err = ([$!] + $!.backtrace.map {|bt| "  #{bt}" }).join("\n")
               count += 1
-              if count < MAX_RETRY
+              if count < @max_retry_count
                 STDERR.puts err + "\n  retrying."
                 sleep rand
                 retry
