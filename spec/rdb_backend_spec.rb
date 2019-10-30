@@ -17,6 +17,9 @@ describe Backend::RDBBackend do
     it 'supports mysql' do
       expect(Backend::RDBBackend.new(uri, table)).to be_an_instance_of(Backend::RDBBackend)
     end
+    it "accepts ssl_mode as an option" do
+      expect(Backend::RDBBackend.new(uri, table, ssl_mode: :disabled).db.opts[:ssl_mode]).to eq(:disabled)
+    end
   end
 
   context '#submit' do
