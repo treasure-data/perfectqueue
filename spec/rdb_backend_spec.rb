@@ -28,6 +28,9 @@ describe Backend::RDBBackend do
         end.and_call_original
         Backend::RDBBackend.new(uri, table, ssl_mode: :disabled)
       end
+      it 'invalid value causes error' do
+        expect { Backend::RDBBackend.new(uri, table, ssl_mode: :invalid) }.to raise_error(Sequel::DatabaseConnectionError)
+      end
     end
   end
 
