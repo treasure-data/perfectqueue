@@ -24,6 +24,7 @@ module PerfectQueue::Backend
       @pq_connect_timeout = config.fetch(:pq_connect_timeout, 20)
       options[:connect_timeout] = config.fetch(:connect_timeout, 3)
       options[:sslca] = config[:sslca] if config[:sslca]
+      options[:ssl_mode] = config[:ssl_mode] if config[:ssl_mode]
       db_name = u.path.split('/')[1]
       @db = Sequel.mysql2(db_name, options)
 

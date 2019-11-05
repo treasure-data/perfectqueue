@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'perfectqueue/backend/rdb'
+require 'mysql2'
 
 describe Backend::RDBBackend do
   let (:now){ Time.now.to_i }
@@ -16,6 +17,20 @@ describe Backend::RDBBackend do
   context '.new' do
     it 'supports mysql' do
       expect(Backend::RDBBackend.new(uri, table)).to be_an_instance_of(Backend::RDBBackend)
+    end
+
+    describe 'supports ssl_mode as an option' do
+      let (:uri){ 'mysql2://root:@127.0.0.1/perfectqueue_test' }
+
+      it 'passes ssl_mode to Mysql2::Client initializer' do
+        expect(Mysql2::Client).to receive(:new) do |params|
+          expect(params[:ssl_mode]).to be(:disabled)
+        end.and_call_original
+        Backend::RDBBackend.new(uri, table, ssl_mode: :disabled)
+      end
+      it 'invalid value causes error' do
+        expect { Backend::RDBBackend.new(uri, table, ssl_mode: :invalid) }.to raise_error(Sequel::DatabaseConnectionError)
+      end
     end
   end
 
