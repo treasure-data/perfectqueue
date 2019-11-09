@@ -96,8 +96,9 @@ module PerfectQueue
               @finish_flag.wait(@poll_interval)
             else
               begin
+                last_heartbeat = Time.now.to_i
                 while task = tasks.shift
-                  process(task)
+                  process(task, last_heartbeat)
                 end
               ensure
                 # TODO do not call release! because rdb_compat backend
@@ -120,11 +121,11 @@ module PerfectQueue
         @tm.stop
       end
 
-      def process(task)
+      def process(task, last_heartbeat=Time.now.to_i)
         @log.info "acquired task task=#{task.key} id=#{@processor_id}: #{task.inspect}"
         begin
           r = @runner.new(task)
-          @tm.set_task(task, r)
+          @tm.set_task(task, r, last_heartbeat)
           begin
             r.run
           ensure

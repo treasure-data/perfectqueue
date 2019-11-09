@@ -72,7 +72,7 @@ module PerfectQueue
     end
 
     def heartbeat!(options={})
-      @client.heartbeat(@task_token, options)
+      @attributes[:timeout] = @client.heartbeat(@task_token, options.merge(last_heartbeat: timeout))
     end
 
     def finish!(options={})
