@@ -9,7 +9,8 @@ executors:
 jobs:
   build:
     executor: executor-circle
-    run: echo "It has used Travis instead of CircleCI."
+    steps:
+      - run: echo "It has used Travis instead of CircleCI."
 
 workflows:
   version: 2
