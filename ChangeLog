@@ -1,3 +1,7 @@
+== 2020-09-10 version 0.8.54
+
+* Enhance logging on inter-process communication (#68)
+
 == 2019-10-10 version 0.8.53
 
 * Extract max_retry_count as config parameter (#66)
