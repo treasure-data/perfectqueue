@@ -1,0 +1,18 @@
+version: 2.1
+
+executors:
+  executor-circle:
+    docker:
+      - image: buildpack-deps:jessie
+    working_directory: /tmp
+
+jobs:
+  build:
+    executor: executor-circle
+    run: echo "It has used Travis instead of CircleCI."
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
