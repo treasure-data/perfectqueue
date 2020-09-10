@@ -103,7 +103,7 @@ module PerfectQueue
         begin
           Process.kill(sig, @pid)
         rescue Errno::ESRCH, Errno::EPERM => e
-          @log.info "#{e.class}: #{e.message}"
+          @log.info "#{e.class}: #{e.message}\n#{e.backtrace}"
         end
       end
 
