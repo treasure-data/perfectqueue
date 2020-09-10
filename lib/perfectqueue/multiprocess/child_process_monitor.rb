@@ -102,8 +102,8 @@ module PerfectQueue
       def send_signal(sig)
         begin
           Process.kill(sig, @pid)
-        rescue Errno::ESRCH, Errno::EPERM
-          # TODO log?
+        rescue Errno::ESRCH, Errno::EPERM => e
+          @log.info "#{e.class}: #{e.message}\n#{e.backtrace}"
         end
       end
 

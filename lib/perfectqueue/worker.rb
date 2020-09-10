@@ -28,6 +28,7 @@ module PerfectQueue
       config = block.call
 
       @config = config
+      @log = config[:logger] || Logger.new(STDERR)
       @runner = runner
 
       @detach_wait = config[:detach_wait] || config['detach_wait'] || 10.0
@@ -66,9 +67,11 @@ module PerfectQueue
 
         else
           # child process finished unexpectedly
+          @log.info "Child process finished unexpectedly pid=#{pid}"
         end
 
-      rescue Errno::ECHILD
+      rescue Errno::ECHILD => e
+        @log.info "#{e.class}: #{e.message}\n#{e.backtrace}"
       end
     end
 
@@ -130,4 +133,3 @@ module PerfectQueue
   end
 
 end
-
