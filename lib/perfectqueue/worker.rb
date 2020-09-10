@@ -71,7 +71,7 @@ module PerfectQueue
         end
 
       rescue Errno::ECHILD => e
-          @log.info "#{e.class}: #{e.message}"
+        @log.info "#{e.class}: #{e.message}"
       end
     end
 
@@ -133,4 +133,3 @@ module PerfectQueue
   end
 
 end
-
