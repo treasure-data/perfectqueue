@@ -1,0 +1,13 @@
+version: 2.1
+
+jobs:
+  prepare:
+    docker:
+      - image: cimg/ruby:2.6
+    steps:
+      - run: echo "Prepare step to add steps in the future"
+
+workflows:
+  build_and_test:
+    jobs:
+      - prepare
